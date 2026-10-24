@@ -3,10 +3,10 @@
 # command go to the server through AWS Systems Manager. Used by the deploy workflow; works from a laptop that
 # is signed in to AWS too.
 # Usage: ci-deploy.sh <release-tag>
-# Needs: REGISTRY (ECR host), AWS_REGION, MANAGED_INSTANCE_ID, and the image repositories <name>-api / <name>-web.
+# Needs: REGISTRY (ECR host), AWS_REGION, PUBLIC_HOST, MANAGED_INSTANCE_ID, and the image repositories <name>-api / <name>-web.
 set -euo pipefail
 RELEASE="${1:?release tag}"
-: "${REGISTRY:?}" "${AWS_REGION:?}" "${MANAGED_INSTANCE_ID:?}"
+: "${REGISTRY:?}" "${AWS_REGION:?}" "${PUBLIC_HOST:?}" "${MANAGED_INSTANCE_ID:?}"
 NAME="${PROJECT_NAME:-bionexus-pilot}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -22,15 +22,16 @@ done
 BUNDLE="$(tar -czf - --exclude=secrets --exclude=.env -C "$ROOT" scripts infra/lightsail | base64 | tr -d '\n')"
 [ "${#BUNDLE}" -lt 90000 ] || { echo "deploy bundle too large for one SSM command" >&2; exit 1; }
 
-COMMANDS="$(python3 - "$BUNDLE" "$RELEASE" "$REGISTRY" "$NAME" <<'PY'
+COMMANDS="$(python3 - "$BUNDLE" "$RELEASE" "$REGISTRY" "$NAME" "$AWS_REGION" "$PUBLIC_HOST" <<'PY'
 import json, shlex, sys
-bundle, release, registry, name = sys.argv[1:]
+bundle, release, registry, name, region, host = sys.argv[1:]
 lines = [
     "set -eu",
     "export PATH=$PATH:/snap/bin",
     "install -d -m 0755 /opt/bionexus",
     f"echo {shlex.quote(bundle)} | base64 -d | tar -xzf - -C /opt/bionexus",
     f"REGISTRY={shlex.quote(registry)} PROJECT_NAME={shlex.quote(name)} "
+    f"AWS_REGION={shlex.quote(region)} PUBLIC_HOST={shlex.quote(host)} "
     f"bash /opt/bionexus/scripts/deploy.sh {shlex.quote(release)}",
 ]
 print(json.dumps({"commands": lines, "executionTimeout": ["900"]}))

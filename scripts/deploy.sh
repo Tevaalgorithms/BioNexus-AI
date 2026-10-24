@@ -14,6 +14,11 @@ grep -q '^RELEASE=' .env || echo "RELEASE=$PREVIOUS" >> .env
 # The 2 GB MVP plan uses the memory-limited override; remove this line on a bigger server.
 grep -q '^COMPOSE_FILE=' .env || echo "COMPOSE_FILE=docker-compose.yml:docker-compose.mvp.yml" >> .env
 
+# Compose reads these from .env; the workflow passes them in, so they are never hand-edited on the server.
+set_env() { grep -q "^$1=" .env && sed -i.bak "s|^$1=.*|$1=$2|" .env && rm -f .env.bak || echo "$1=$2" >> .env; }
+[ -z "${AWS_REGION:-}" ] || set_env AWS_REGION "$AWS_REGION"
+[ -z "${PUBLIC_HOST:-}" ] || set_env PUBLIC_HOST "$PUBLIC_HOST"
+
 set_release() { sed -i.bak "s/^RELEASE=.*/RELEASE=$1/" .env && rm -f .env.bak; }
 healthy() {
   for _ in $(seq 1 30); do
