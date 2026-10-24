@@ -30,3 +30,5 @@ dist/
 coverage/
 .coverage
 .mypy_cache/
+tfplan
+*.tfplan
