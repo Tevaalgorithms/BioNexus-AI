@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { HOME, LoginKind, loadConfig } from "@/lib/config";
+import { HOME, LoginKind, WebConfig, loadConfig } from "@/lib/config";
 import { authorizeUrl } from "@/lib/cognito";
 import { paramEnv } from "@/lib/params";
 import { newPkce, randomToken, safeReturnTo, sign } from "@/lib/pkce";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const kind = request.nextUrl.searchParams.get("kind") === "admin" ? "admin" : "scientist";
   const returnTo = safeReturnTo(request.nextUrl.searchParams.get("returnTo"), HOME[kind], HOME[kind]);
 
-  if (config.authMode === "dev") return devLogin(config.apiUrl, kind, returnTo, request);
+  if (config.authMode === "dev") return devLogin(config, kind, returnTo);
 
   const { verifier, challenge } = newPkce();
   const state = randomToken(24);
@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
   return response;
 }
 
-async function devLogin(apiUrl: string, kind: LoginKind, returnTo: string, request: NextRequest) {
+async function devLogin({ apiUrl, baseUrl }: WebConfig, kind: LoginKind, returnTo: string) {
   const token = devToken(kind);
-  if (!token) return NextResponse.redirect(new URL("/access-denied?reason=no-account", request.url));
+  if (!token) return NextResponse.redirect(new URL("/access-denied?reason=no-account", baseUrl));
   const me = await fetch(`${apiUrl}/me`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!me.ok) return NextResponse.redirect(new URL("/access-denied", request.url));
+  if (!me.ok) return NextResponse.redirect(new URL("/access-denied", baseUrl));
   const session = createSession(kind, { accessToken: token, expiresAt: Date.now() + 3_600_000 }, await me.json());
-  const response = NextResponse.redirect(new URL(returnTo, request.url));
+  const response = NextResponse.redirect(new URL(returnTo, baseUrl));
   response.cookies.set(SESSION_COOKIE, session.id, sessionCookieOptions);
   return response;
 }

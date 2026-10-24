@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const config = loadConfig();
   const kind = session?.kind ?? "scientist";
   destroy(session?.id);
-  const target = config.authMode === "cognito" ? logoutUrl(config, kind) : new URL(kind === "admin" ? "/admin/login" : "/login", request.url).toString();
+  const target = config.authMode === "cognito" ? logoutUrl(config, kind) : new URL(kind === "admin" ? "/admin/login" : "/login", config.baseUrl).toString();
   const response = NextResponse.redirect(target, 303);
   response.cookies.delete(SESSION_COOKIE);
   return response;
