@@ -35,6 +35,38 @@ BioNexus adds four things a plain literature search or a generic chatbot does no
 - **Quality gates:** lint with a cyclomatic-complexity limit, tests against in-memory and real PostgreSQL stores, a secret scan, a baseline evaluation, Terraform validation and image builds (defined in GitHub Actions, not yet run on GitHub).
 - **Not built:** a run against a real Cognito pool, a live AI-model call, scheduled source refresh, raw-response capture, mapping-correction UI, remove-member and delete-project, the pilot evaluation.
 
+## How this compares with existing products
+
+Several good products already help with parts of this problem. BioNexus does not replace them; it takes a different approach.
+The descriptions below come from each product's own public material and were checked in October 2026. Vendor figures are the vendors' claims, not independent measurements, and products change, so confirm before relying on them.
+
+| Product | What it is | Where BioNexus is different |
+|---|---|---|
+| [Open Targets Platform](https://platform-docs.opentargets.org/associations) | Free public resource that scores target–disease links from genetics, drugs, expression and literature text mining. Its own documentation says the score reflects *how much* evidence exists, not how good it is. | BioNexus uses Open Targets as one of six live sources, then goes a step further: it counts independent study families, shows direction (supports, opposes, unknown) and flags contradictions. It does not produce a single association score. |
+| [Causaly](https://www.causaly.com/use-cases/target-identification-prioritization) | Commercial platform with a proprietary biomedical knowledge graph and a target ontology for target identification, showing mechanisms, directional effects and contradictory findings. | Causaly has a much larger, curated knowledge base and a mature product. BioNexus is open to inspect and run yourself, has no proprietary graph, and bases every claim on passages fetched from public sources for that run. |
+| [Insilico Medicine PandaOmics](https://www.bio-itworld.com/news/2024/02/27/validated-ai-driven-target-identification-and-biomarker-discovery-with-insilico-medicine-s-pandaomics) | Commercial AI platform that ranks targets using omics, text, commercial and expert scores, with novelty, druggability and safety views. | PandaOmics predicts and ranks targets from omics data, which BioNexus does not do. BioNexus is a review tool: it checks what published evidence says and abstains when the evidence is thin. |
+| [Elicit](https://elicit.com/) and similar AI research assistants | General AI tools that search papers, screen them and extract data into tables with citations. | They are built for literature review across any field. BioNexus is built for one question, a gene and a disease, and combines genetics, pathway and clinical-trial sources with papers, not only papers. |
+| Searching PubMed and databases by hand | The usual baseline. | Slow and hard to repeat, but fully under the scientist's control. BioNexus automates the gathering and keeps the scientist's sign-off. |
+
+### What BioNexus does differently
+
+- **Independent evidence, not volume.** Records from the same study are grouped into one study family, so "10 papers" that reuse one cohort count once.
+- **Every claim traces to a passage.** A claim without a source passage is not allowed into the report.
+- **Contradictions are shown, not smoothed over.** Opposing findings and single-study support appear as issues in the report.
+- **A rule gate before anything counts.** Evidence must be licensed for use, dated before your cutoff and not excluded in review.
+- **A scientist signs off.** A run stops for human review before it is final, and only approved evidence is reused, only inside the same project.
+- **Reproducible and auditable.** Each run is pinned to a configuration release (skills, models, settings), and every model call, cost and decision is recorded.
+- **Cost controlled.** Hard per-run and per-organisation model budgets, and a single small server (see [`docs/costs.md`](docs/costs.md)).
+- **Honest about limits.** It does not claim causation, give treatment advice or hide missing evidence.
+
+### Where existing products are stronger
+
+Be clear about this before choosing:
+
+- **Scale and curation.** Causaly and Open Targets cover far more data than the six public sources used here.
+- **Prediction.** PandaOmics and similar tools model omics data to find new targets; BioNexus only reviews published evidence.
+- **Maturity.** The commercial products have customers, support and validation. BioNexus has none of that yet: it has never made a live AI-model call, has not been deployed, and has not been shown to beat a simpler single-agent approach on a real evaluation set (see [Limits](#limits-and-honest-caveats)).
+
 ## Architecture
 
 Solid boxes are built and tested. Dashed boxes exist in code but have not been run against the real service.
