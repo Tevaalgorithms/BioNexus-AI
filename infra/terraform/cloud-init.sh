@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # First-boot provisioning: Docker, unattended upgrades, deploy directory, daily backup timer.
-set -euo pipefail
+set -eu   # Lightsail runs this with sh, which has no pipefail
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl unattended-upgrades age unzip
@@ -22,7 +22,7 @@ chmod 700 /etc/bionexus
 # the deploy script here (no SSH key, no open SSH port). The one-time code expires after 7 days.
 snap install amazon-ssm-agent --classic
 snap stop amazon-ssm-agent
-amazon-ssm-agent -register -code '${activation_code}' -id '${activation_id}' -region '${region}'
+/snap/amazon-ssm-agent/current/amazon-ssm-agent -register -code '${activation_code}' -id '${activation_id}' -region '${region}'
 snap start amazon-ssm-agent
 
 cat > /etc/systemd/system/bionexus-backup.service <<'UNIT'

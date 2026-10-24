@@ -7,7 +7,6 @@ locals {
   prefix = "/bionexus/prod"
 
   plain = {
-    APP_ENV                     = null # bootstrap value; set on the host, not here
     AUTH_MODE                   = "cognito"
     PUBLIC_BASE_URL             = "https://${var.domain_name}"
     BIONEXUS_API_URL            = "http://api:8000"
@@ -31,7 +30,7 @@ locals {
 }
 
 resource "aws_ssm_parameter" "plain" {
-  for_each = { for k, v in local.plain : k => v if v != null }
+  for_each = local.plain
   name     = "${local.prefix}/${each.key}"
   type     = "String"
   value    = each.value
