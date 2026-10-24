@@ -1,12 +1,10 @@
 # One pool, two app clients, server-enforced roles (the clients are not the authorisation boundary).
 resource "aws_cognito_user_pool" "main" {
   name                     = var.name
-  mfa_configuration        = "ON"
+  mfa_configuration        = "OFF" # a decision for the MVP: password sign-in only; revisit before real data
   deletion_protection      = "ACTIVE"
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
-
-  software_token_mfa_configuration { enabled = true }
 
   admin_create_user_config {
     allow_admin_create_user_only = true # invite-only: no public registration (AUTH-01/05)

@@ -6,7 +6,7 @@ Prices are US dollars per month, taken from the AWS pricing pages in October 202
 |---|---|---|
 | Lightsail Linux server, 2 GB RAM, 2 vCPU, 60 GB disk, 3 TB transfer | **$12** | Runs Caddy, web, API, worker and PostgreSQL. Includes a static IP. |
 | Weekly snapshot backup of that disk | about $3 | $0.05 per GB, 60 GB disk. Skip it and use `scripts/backup.sh` to S3 or a laptop for $0. |
-| Cognito sign-in (MFA with an authenticator app) | $0 | First 10,000 monthly users are free, for all accounts. |
+| Cognito sign-in (invite-only, password) | $0 | First 10,000 monthly users are free, for all accounts. |
 | SSM Parameter Store (standard parameters) | $0 | Storage is free. |
 | KMS for SecureString parameters | under $1 | AWS-managed key, 20,000 free requests, then about $0.03 per 10,000. |
 | AWS Budgets | $0 | The first two budgets are free. |

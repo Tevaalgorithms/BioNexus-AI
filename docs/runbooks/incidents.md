@@ -10,7 +10,7 @@
 ## Compromised account
 1. `admin_cli revoke-sessions` and `disable-user` for the subject; disable in Cognito.
 2. Review Admin -> Audit history and `GET /investigations/{id}/messages` for runs the user touched.
-3. Rotate secrets if an admin account was involved ([secrets.md](secrets.md)). Re-enrol MFA on re-enable.
+3. Rotate secrets if an admin account was involved ([secrets.md](secrets.md)).
 
 ## Tenant data exposure (suspected)
 1. Stop model calls; take a backup; preserve logs (`docker compose logs`, structured JSON).

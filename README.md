@@ -81,7 +81,7 @@ graph TB
         BFF["Server side of the web app (BFF)<br/>sign-in · session · CSRF · API proxy"]
     end
 
-    COG["Amazon Cognito<br/>two app clients, MFA, invite-only<br/>not yet run against a real pool"]:::planned
+    COG["Amazon Cognito<br/>two app clients, invite-only, password sign-in<br/>not yet run against a real pool"]:::planned
     API["FastAPI<br/>token check · roles · projects · admin API<br/>events (SSE) · exports"]
     WORKER["Worker<br/>leases jobs, runs the graph"]
 
@@ -184,7 +184,7 @@ sequenceDiagram
     B->>W: GET /api/auth/login?kind=...
     W->>W: make state, nonce and PKCE verifier, sign them into a short-lived cookie
     W-->>B: redirect to Cognito (the app client for that kind)
-    B->>C: sign in with MFA
+    B->>C: sign in with email and password
     C-->>B: redirect back with a code
     B->>W: GET /api/auth/callback/{kind}
     W->>W: check state, exchange the code (confidential client), check the nonce
@@ -361,7 +361,7 @@ sequenceDiagram
 | Data sources | Open Targets (GraphQL), GWAS Catalog (REST v2), Europe PMC, Reactome, Monarch (v3), ClinicalTrials.gov (v2). These are **BioNexus adapters**, not official MCP servers |
 | Search | PostgreSQL full-text search plus pgvector, fused with Reciprocal Rank Fusion. Offline hashing embedder by default; an OpenAI embedder via LangChain is written and untested live |
 | Database | PostgreSQL 16 with pgvector; an in-memory store for tests and the offline demo. Forward-only SQL migrations (`storage/migrations/`) |
-| Auth | Amazon Cognito (two app clients, MFA), JWT verification with generated-key tests; roles and projects live in the database |
+| Auth | Amazon Cognito (two app clients, invite-only, password sign-in; no MFA yet), JWT verification with generated-key tests; roles and projects live in the database |
 | Configuration | `.env` locally, **AWS SSM Parameter Store** in production, models editable at runtime |
 | Frontend | Next.js 16, React 19, TypeScript, plain CSS design system with light and dark themes |
 | Reports | Markdown, Word (`python-docx`), JSON manifest |

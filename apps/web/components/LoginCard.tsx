@@ -19,7 +19,7 @@ export default function LoginCard({ kind, returnTo }: { kind: "admin" | "scienti
           <h1 style={{ margin: "8px 0" }}>{admin ? "Administrator sign-in" : "Scientist sign-in"}</h1>
           <p className="lede">{admin ? "Manage models, agents, sources, spend and audit history for the platform." : "Run evidence investigations and review reports for your research projects."}</p>
           <ul className="trust">
-            <li><Icon name="lock" /> Invite-only access with multi-factor authentication.</li>
+            <li><Icon name="lock" /> Invite-only access: accounts are created by an administrator.</li>
             <li><Icon name="shield" /> {admin ? "Administrators cannot open confidential projects unless they are members." : "Your projects are private to your organisation and its members."}</li>
             <li><Icon name="doc" /> Every result links back to its source passage and records the exact models used.</li>
           </ul>

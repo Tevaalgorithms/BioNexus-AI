@@ -10,7 +10,7 @@ export default async function Page() {
         <dt>User</dt><dd>{user.user_id}</dd><dt>Role</dt><dd>{user.role}</dd>
         <dt>Organisation</dt><dd>{user.tenant_id}</dd><dt>Projects</dt><dd>{user.projects.join(", ") || "none"}</dd>
       </dl>
-      <p className="hint">Multi-factor authentication and password changes are managed on the secure sign-in page.</p>
+      <p className="hint">Password changes are managed on the secure sign-in page.</p>
     </>
   );
 }
