@@ -46,8 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: gitleaks/gitleaks-action@v2
-        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      # Scans the whole history every time. (The packaged action fails on a root commit or a rewritten history.)
+      - run: docker run --rm -v "$PWD":/repo zricethezav/gitleaks:v8.24.3 detect --source /repo --redact --no-banner
       - uses: hashicorp/setup-terraform@v3
       - run: terraform -chdir=infra/terraform init -backend=false && terraform -chdir=infra/terraform validate
 
