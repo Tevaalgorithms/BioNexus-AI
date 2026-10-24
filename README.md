@@ -313,7 +313,7 @@ An investigation turns a question into a **reviewed draft**. The scientist, not 
 | 5 Specialists | `Dispatcher.run_parallel()`, `SpecialistAgent.assess()`, `GeneticsAgent.follow_ups()` | `workflow/dispatcher.py`, `agents/base.py`, `agents/genetics.py` |
 | Router | `MessageRouter.accept()` | `messaging/router.py` |
 | Eligibility | `partition_eligible()` | `evidence/eligibility.py` |
-| Sources | `GuardedHttp`, the six `*Source` classes | `sources/http.py`, `sources/live.py` |
+| Sources | `GuardedHttp`, the six `*Source` classes | `sources/http.py`, `sources/live/` (one module per source) |
 | 6 Critique | `find_issues()`, `CriticAgent.handle()` | `agents/critic.py` |
 | 7 Retrieve | `RetrievalService.search()` and `.expand()`, `fuse()` | `retrieval/service.py`, `retrieval/fusion.py` |
 | 8 Synthesize | `SynthesizerAgent.write()`, `build_matrix()` | `agents/synthesizer.py`, `evidence/matrix.py` |
