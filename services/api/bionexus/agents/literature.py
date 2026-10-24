@@ -2,9 +2,15 @@
 
 from typing import ClassVar
 
-from bionexus.agents.base import AgentResult, SpecialistAgent, evidence_block
+from bionexus.agents.base import (
+    RECHECK_PASSAGE_IN_PROMPT,
+    AgentResult,
+    SpecialistAgent,
+    evidence_block,
+)
 from bionexus.contracts.evidence import EvidenceRecord, Stance
-from bionexus.contracts.messages import AgentMessage, AgentName
+from bionexus.contracts.messages import AgentMessage, AgentName, ChallengeAsk
+from bionexus.evidence.stance import MODEL_STANCE_NOTE, RECHECKED_NOTE
 from bionexus.workflow.state import RunState
 
 MAX_STANCE_EXTRACTIONS = 10
@@ -38,16 +44,29 @@ class LiteratureAgent(SpecialistAgent):
         if record.stance is not Stance.UNKNOWN or not record.passage:
             return record
         answer = self.ask_model(state, STANCE_QUESTION + evidence_block([record]))
-        context = f"{record.context}; stance extracted by model (unreviewed)"
+        context = f"{record.context}; {MODEL_STANCE_NOTE}"
         return record.model_copy(update={"stance": parse_stance(answer), "context": context})
 
     def answer_challenge(self, message: AgentMessage, state: RunState) -> AgentResult:
-        """Return the supporting passage if the source has one; otherwise say so plainly."""
+        """Answer the critic: fetch the full passage, and re-read the direction if asked to."""
         record = state.evidence[str(message.payload["evidence_id"])]
         passage = self.deps.sources.get(record.source).passage_for(record.source_id)
         if not passage:
             return AgentResult(abstained=True, assessment="Supporting passage not found.")
+        with_passage = record.model_copy(update={"passage": passage})
+        if message.payload.get("ask") == ChallengeAsk.RECHECK_DIRECTION:
+            return self._recheck_direction(record, with_passage, state)
+        return AgentResult(evidence=[with_passage], assessment="Passage retrieved from source.")
+
+    def _recheck_direction(
+        self, original: EvidenceRecord, with_passage: EvidenceRecord, state: RunState
+    ) -> AgentResult:
+        """A second opinion: the model reads the whole passage, not the excerpt it saw before."""
+        prompt = STANCE_QUESTION + evidence_block([with_passage], RECHECK_PASSAGE_IN_PROMPT)
+        stance = parse_stance(self.ask_model(state, prompt))
+        context = original.context.replace(MODEL_STANCE_NOTE, RECHECKED_NOTE)
+        updated = with_passage.model_copy(update={"stance": stance, "context": context})
         return AgentResult(
-            evidence=[record.model_copy(update={"passage": passage})],
-            assessment="Passage retrieved from source.",
+            evidence=[updated],
+            assessment=f"Direction re-checked: {original.stance.value} -> {stance.value}.",
         )

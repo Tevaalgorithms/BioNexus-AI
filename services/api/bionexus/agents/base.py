@@ -26,13 +26,14 @@ class AgentDeps:
 
 
 MAX_PASSAGE_IN_PROMPT = 300
+RECHECK_PASSAGE_IN_PROMPT = 1500  # a second opinion reads the whole passage, not the excerpt
 
 
-def evidence_block(records: list[EvidenceRecord]) -> str:
+def evidence_block(
+    records: list[EvidenceRecord], passage_limit: int = MAX_PASSAGE_IN_PROMPT
+) -> str:
     """Source text enters prompts only in this delimited block, as data, never instructions."""
-    lines = [
-        f"[{r.evidence_id}] {r.finding} :: {r.passage[:MAX_PASSAGE_IN_PROMPT]}" for r in records
-    ]
+    lines = [f"[{r.evidence_id}] {r.finding} :: {r.passage[:passage_limit]}" for r in records]
     return "<evidence_data>\n" + "\n".join(lines) + "\n</evidence_data>"
 
 

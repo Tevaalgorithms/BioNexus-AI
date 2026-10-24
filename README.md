@@ -92,7 +92,7 @@ graph TB
 
 **LangGraph and LangChain, used narrowly.** LangGraph runs the investigation: the graph shape, the bounded repair loop, retries, PostgreSQL checkpoints and the human-review interrupt. It holds only control data. The investigation itself is stored in your own tables, so the API, UI and audit log read one source of truth. LangChain provides one thing: provider-neutral chat models (`ChatAnthropic`, `ChatOpenAI`) behind our own `ModelClient` port. Approved-model checks, budgets, fallback and the call ledger sit around it in the gateway. No LangChain agents, chains, tools, retrievers or memory.
 
-**What leaves your machine.** In demo mode nothing does. In live mode, disease and gene names go to the six public APIs. With a real AI model configured, the question and evidence text (passages shortened to 300 characters inside a delimited data block) go to that model's provider.
+**What leaves your machine.** In demo mode nothing does. In live mode, disease and gene names go to the six public APIs. With a real AI model configured, the question and evidence text (passages shortened to 300 characters inside a delimited data block; a second look sends up to 1,500) go to that model's provider.
 
 More detail, with sequence diagrams of sign-in, a run and the review step, and a map from each step to its code, is in [`docs/architecture.md`](docs/architecture.md).
 
@@ -104,10 +104,10 @@ More detail, with sequence diagrams of sign-in, a run and the review step, and a
 | --- | --- | --- |
 | **Supervisor** | Plans the run. It starts genetics, literature and clinical every time; which agents run is never left to a model. | Nothing |
 | **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. | Summary |
-| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. | Summary and stance |
+| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. | Summary, stance, and the second look |
 | **Pathways** | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Summary |
 | **Clinical** | Registered trials from ClinicalTrials.gov. | Summary |
-| **Critic** | Finds three kinds of problem with plain code: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It then asks for repairs. | A short note only |
+| **Critic** | Finds three kinds of problem with plain code: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It then asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. | A short note only |
 | **Synthesizer** | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | Narrative |
 
 **Which model?** It is not fixed in the code. Each agent is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per agent in **Agents & models**, so the synthesizer can use a different model from the specialists. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. The supervisor has a binding but never calls a model.
@@ -128,7 +128,7 @@ flowchart TB
     CLI --> EV
     PATH --> EV
     EV --> CRIT["Critic<br/>missing passages · contradictions<br/>single-study support"]
-    CRIT -- "evidence.challenge<br/>repair loop, at most 2 rounds" --> LIT
+    CRIT -- "evidence.challenge: missing passage, or a<br/>second look at a conflicting direction<br/>repair loop, at most 2 rounds" --> LIT
     CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
     RANK --> SYN["Synthesizer<br/>claims from accepted evidence only"]
     SYN --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
@@ -154,6 +154,8 @@ sequenceDiagram
     S->>C: task.request (repair round)
     C->>L: evidence.challenge (supply the supporting passage)
     L-->>C: task.result (the passage, or "not found")
+    C->>L: evidence.challenge (re-check a conflicting direction)
+    L-->>C: task.result (the re-read direction)
 ```
 
 **The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are four types: `task.request`, `task.result`, `task.failed` and `evidence.challenge`.

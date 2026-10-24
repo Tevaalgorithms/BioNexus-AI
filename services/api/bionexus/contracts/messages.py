@@ -22,6 +22,13 @@ class MessageType(StrEnum):
     TASK_FAILED = "task.failed"
 
 
+class ChallengeAsk(StrEnum):
+    """What an `evidence.challenge` asks the receiving specialist to do."""
+
+    SUPPLY_PASSAGE = "supply the supporting passage"
+    RECHECK_DIRECTION = "recheck the direction against the full passage"
+
+
 class AgentMessage(BaseModel):
     model_config = ConfigDict(frozen=True)
 

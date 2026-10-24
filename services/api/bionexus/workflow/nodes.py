@@ -82,7 +82,7 @@ class InvestigationNodes:
 
     def needs_repair(self, state: RunState, round_number: int) -> bool:
         """The graph's loop condition: something is fixable and the round budget remains."""
-        return round_number < MAX_REPAIR_ROUNDS and bool(self._critic.repairable_issues(state))
+        return round_number < MAX_REPAIR_ROUNDS and bool(self._critic.pending_repairs(state))
 
     def critique_round(self, state: RunState, round_number: int) -> None:
         """One critic pass: challenge the specialists, then re-assess what is still open."""

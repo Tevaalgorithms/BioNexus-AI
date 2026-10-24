@@ -7,8 +7,8 @@ export interface StageInfo { id: string; label: string; icon: IconName; plain: s
 export const STAGES: StageInfo[] = [
   { id: "scope", label: "Check request", icon: "check", plain: "Confirms the question is complete and within pilot limits." },
   { id: "recall_memory", label: "Recall reviewed work", icon: "book", plain: "Reuses evidence your team already reviewed in this project (never unreviewed work)." },
-  { id: "specialists", label: "Gather evidence", icon: "search", plain: "Specialist agents query genetics, literature, pathway and trial sources in parallel." },
-  { id: "critique", label: "Challenge & repair", icon: "scale", plain: "A critic looks for contradictions and missing support and asks specialists to fix what it can." },
+  { id: "specialists", label: "Gather evidence", icon: "search", plain: "Genetics, literature and clinical agents query their sources in parallel. Genetics can ask pathways for context on genes with genetic support." },
+  { id: "critique", label: "Challenge & repair", icon: "scale", plain: "A critic looks for contradictions and missing support. It asks the literature agent for missing passages and for a second look at directions a model read; what stays unresolved is reported." },
   { id: "retrieve", label: "Rank & connect", icon: "graph", plain: "Ranks the accepted evidence for your question and maps how it connects." },
   { id: "synthesize", label: "Write findings", icon: "pen", plain: "Drafts claims that cite only accepted evidence. No causal or treatment statements." },
   { id: "finalize", label: "Build report", icon: "doc", plain: "Assembles the draft report and a reproducibility record." },
@@ -18,12 +18,12 @@ export const STAGES: StageInfo[] = [
 export interface AgentInfo { id: string; name: string; icon: IconName; role: string; sources: string[]; sourcesText: string }
 
 export const AGENTS: AgentInfo[] = [
-  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work and hands tasks to the specialists. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates" },
-  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, keeping ancestry and direction of effect.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog" },
-  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies and reports only findings backed by a passage you can open.", sources: ["europe_pmc"], sourcesText: "Europe PMC" },
-  { id: "pathways", name: "Pathways", icon: "path", role: "Adds biological context: curated pathways and phenotype data. Annotation is not proof of mechanism.", sources: ["reactome", "monarch"], sourcesText: "Reactome, Monarch" },
+  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work: always starts genetics, literature and clinical. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates" },
+  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, with the direction of effect and study context where the source gives them. Asks pathways for context on genes it finds support for.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog" },
+  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies; a finding can be cited only if a passage you can open backs it. Where a paper states no direction, a model reads it and the result is labelled unreviewed. Answers the critic's requests for a passage or a second look.", sources: ["europe_pmc"], sourcesText: "Europe PMC" },
+  { id: "pathways", name: "Pathways", icon: "path", role: "Adds biological context: curated pathways and phenotype data. Only asked by genetics. Annotation is not proof of mechanism.", sources: ["reactome", "monarch"], sourcesText: "Reactome, Monarch" },
   { id: "clinical", name: "Clinical context", icon: "flask", role: "Notes registered clinical trials and their status. Registration is not evidence a treatment works.", sources: ["clinicaltrials"], sourcesText: "ClinicalTrials.gov" },
-  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study, then asks for repairs.", sources: [], sourcesText: "Reviews all evidence" },
+  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study. Asks the literature agent for missing passages and to re-read conflicting directions a model assigned; what it cannot resolve stays listed.", sources: [], sourcesText: "Reviews all evidence" },
   { id: "synthesizer", name: "Synthesizer", icon: "pen", role: "Writes the draft using only evidence that was accepted; blocks causal and treatment language.", sources: [], sourcesText: "Writes the report" },
 ];
 
@@ -37,6 +37,7 @@ export const GLOSSARY: { term: string; meaning: string }[] = [
   { term: "Accepted evidence", meaning: "Evidence that is licensed for use, available before your cutoff date, and backed by a passage. Only accepted evidence can appear in a claim." },
   { term: "Evidence cutoff", meaning: "Only evidence available on or before this date is used, so results can be reproduced and compared fairly." },
   { term: "Draft vs approved", meaning: "Every report starts as a draft. It becomes approved only when a scientist approves that exact version." },
+  { term: "Second look", meaning: "When studies conflict, the critic asks the literature agent to re-read a direction that a model assigned, this time against the full passage. The new answer is labelled unreviewed. Directions that come straight from a database are reported, not re-read." },
   { term: "Handoff", meaning: "One agent asking another for help, for example genetics asking pathways for context. Every handoff is recorded." },
   { term: "Incomplete", meaning: "The run stopped early (for example a budget limit or a source outage). What was found is shown; nothing is invented to fill the gap." },
   { term: "Configuration release", meaning: "The exact set of models, skills and prompts a run used. It is fixed when the run starts, so later admin changes never alter a run in progress." },

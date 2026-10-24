@@ -5,7 +5,7 @@ const hex = (cx: number, cy: number, r: number) =>
   Array.from({ length: 6 }, (_, i) => `${cx + r * Math.cos((Math.PI / 3) * i - Math.PI / 6)},${cy + r * Math.sin((Math.PI / 3) * i - Math.PI / 6)}`).join(" ");
 
 export function HeroNetwork({ title = "Evidence from four kinds of source flows to an agent team, then to a report a scientist approves" }: { title?: string }) {
-  const sources = [["Genetics", 54, "dna"], ["Literature", 128, "book"], ["Pathways", 202, "path"], ["Trials", 276, "flask"]] as const;
+  const sources = [["Genetics", 54, "dna"], ["Literature", 128, "book"], ["Pathways", 202, "path"], ["Clinical", 276, "flask"]] as const;
   return (
     <svg viewBox="0 0 560 360" role="img" aria-label={title} style={{ width: "100%", height: "auto" }}>
       <defs>
@@ -70,19 +70,19 @@ export function TeamDiagram() {
   const specialists = [["Genetics", 52], ["Pathways", 130], ["Literature", 208], ["Clinical", 286]] as const;
   return (
     <svg viewBox="0 0 760 336" role="img" style={{ width: "100%", maxWidth: 860, height: "auto", display: "block", margin: "0 auto" }}
-      aria-label="Four steps. One: the supervisor plans. Two: genetics, pathways, literature and clinical specialists gather evidence; genetics can ask pathways for context. Three: the critic challenges weak evidence and asks specialists to repair it, then the synthesizer writes cited findings. Four: a scientist reviews and approves.">
+      aria-label="Four steps. One: the supervisor plans and starts the genetics, literature and clinical specialists. Two: they gather evidence; genetics can ask pathways for context, but only for genes with genetic support. Three: the critic checks all the evidence and asks the literature agent for missing passages and a second look at conflicting directions, then the synthesizer writes cited findings. Four: a scientist reviews and approves.">
       <defs>
         <marker id="td-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--muted)" /></marker>
-        <marker id="td-arrow-b" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto"><path d="M0 0L7 3.500L0 7z" fill="var(--brand-2)" /></marker>
+        <marker id="td-arrow-b" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--brand-2)" /></marker>
       </defs>
 
       {[["1  Plan", 70], ["2  Gather evidence", 265], ["3  Challenge & write", 475], ["4  Approve", 682]].map(([t, x]) => (
         <text key={t as string} x={x as number} y="16" textAnchor="middle" fontSize="12" fontWeight="700" letterSpacing=".05em" fill="var(--muted)">{(t as string).toUpperCase()}</text>
       ))}
 
-      {/* supervisor -> specialists */}
+      {/* supervisor -> the three planned specialists (pathways is asked by genetics, not planned) */}
       <g fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinejoin="round">
-        {specialists.map(([n, cy]) => <path key={n} d={`M130 169 H160 V${cy} H186`} markerEnd="url(#td-arrow)" />)}
+        {specialists.filter(([n]) => n !== "Pathways").map(([n, cy]) => <path key={n} d={`M130 169 H160 V${cy} H186`} markerEnd="url(#td-arrow)" />)}
       </g>
       <rect x="10" y="137" width="120" height="64" rx="8" fill="var(--brand)" />
       <text x="70" y="165" textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--on-brand)">Supervisor</text>
@@ -91,23 +91,27 @@ export function TeamDiagram() {
       {/* specialists */}
       {specialists.map(([n, cy]) => (
         <g key={n}>
-          <rect x="190" y={cy - 20} width="150" height="40" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" strokeOpacity=".45" />
+          <rect x="190" y={cy - 20} width="150" height="40" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" strokeOpacity=".45" strokeDasharray={n === "Pathways" ? "4 3" : undefined} />
           <text x="265" y={cy + 5} textAnchor="middle" fontSize="14" fontWeight="650" fill="var(--brand)">{n}</text>
         </g>
       ))}
       {/* genetics asks pathways */}
       <path d="M228 73 V107" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" markerEnd="url(#td-arrow-b)" />
-      <text x="240" y="95" fontSize="11" fontWeight="600" fill="var(--brand-2)">asks for context</text>
+      <text x="240" y="88" fontSize="11" fontWeight="600" fill="var(--brand-2)">asks for context</text>
+      <text x="240" y="101" fontSize="10" fill="var(--muted)">supported genes only</text>
 
-      {/* specialists <-> critic (two-way: challenge and repair) */}
+      {/* every specialist hands its evidence to the critic */}
       <path d="M340 52 H366 M340 130 H366 M340 208 H366 M340 286 H366 M366 52 V286" stroke="var(--muted)" strokeWidth="2" fill="none" />
-      <path d="M366 118 H398" stroke="var(--muted)" strokeWidth="2" fill="none" markerStart="url(#td-arrow)" markerEnd="url(#td-arrow)" />
+      <path d="M366 118 H398" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
+      {/* the critic talks back to one agent only: literature (missing passage, second look) */}
+      <path d="M400 146 H382 V218 H342" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" strokeLinejoin="round" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
+      <text x="388" y="190" fontSize="11" fontWeight="600" fill="var(--brand-2)">ask · answer</text>
 
       {/* critic */}
       <rect x="400" y="80" width="150" height="76" rx="8" fill="var(--warn-bg)" stroke="var(--warn)" />
       <text x="475" y="108" textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--warn)">Critic</text>
-      <text x="475" y="127" textAnchor="middle" fontSize="11" fill="var(--text)">challenges weak evidence,</text>
-      <text x="475" y="142" textAnchor="middle" fontSize="11" fill="var(--text)">specialists repair it</text>
+      <text x="475" y="127" textAnchor="middle" fontSize="11" fill="var(--text)">flags gaps and conflicts,</text>
+      <text x="475" y="142" textAnchor="middle" fontSize="11" fill="var(--text)">asks for a second look</text>
 
       {/* critic -> synthesizer -> scientist */}
       <path d="M475 156 V212" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
