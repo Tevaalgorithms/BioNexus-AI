@@ -45,9 +45,14 @@ pull_images() {
 pull_images
 
 # Always take a fresh restore point first, except on the very first deploy when there is no database yet.
+# Once backups are configured (/etc/bionexus/backup.env) this step is mandatory; until then it is skipped loudly.
 if [ -n "$(docker compose ps -q db 2>/dev/null)" ]; then
-  [ -f /etc/bionexus/backup.env ] && { set -a; . /etc/bionexus/backup.env; set +a; }
-  "$(dirname "$0")/backup.sh"
+  if [ -f /etc/bionexus/backup.env ]; then
+    set -a; . /etc/bionexus/backup.env; set +a
+    "$(dirname "$0")/backup.sh"
+  else
+    echo "WARNING: backups are not configured, so no restore point was taken (see docs/runbooks/secrets.md)" >&2
+  fi
 fi
 set_release "$NEW"
 docker compose up -d migrate                # migrations run before the new API starts
