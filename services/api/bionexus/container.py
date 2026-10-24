@@ -7,7 +7,6 @@ from pathlib import Path
 
 from langgraph.graph.state import CompiledStateGraph
 
-from bionexus.admin import AdminService
 from bionexus.agents.base import AgentDeps
 from bionexus.agents.clinical import ClinicalAgent
 from bionexus.agents.critic import CriticAgent
@@ -17,6 +16,9 @@ from bionexus.agents.pathways import PathwaysAgent
 from bionexus.agents.skills import SkillRegistry
 from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
+from bionexus.application.admin import AdminService
+from bionexus.application.projects import ProjectService
+from bionexus.application.services import InvestigationService
 from bionexus.auth.policy import StaticTokenVerifier, TokenVerifier
 from bionexus.config import Settings
 from bionexus.contracts.identity import ClientKind, Principal, Role
@@ -31,13 +33,11 @@ from bionexus.llm.registry import ModelRegistry, ModelSpec, load_specs, specs_fr
 from bionexus.llm.release import ReleaseStore
 from bionexus.messaging.router import MessageRouter
 from bionexus.params import parameters
-from bionexus.projects import ProjectService
 from bionexus.reporting.builder import ReportBuilder
 from bionexus.reporting.review import ReviewService
 from bionexus.reporting.revision import RevisionService
 from bionexus.retrieval.embedder import HashingEmbedder
 from bionexus.retrieval.service import RetrievalService
-from bionexus.services import InvestigationService
 from bionexus.sources.http import GuardedHttp
 from bionexus.sources.live import live_sources
 from bionexus.sources.registry import SourceRegistry

@@ -1,4 +1,4 @@
-"""Operator procedure for users (AUTH-05/16): `python -m bionexus.admin_cli <command>`.
+"""Operator procedure for users (AUTH-05/16): `python -m bionexus.cli.admin <command>`.
 
 Cognito users are created separately with the AWS CLI (see docs/runbooks); this registers the
 matching application account, role, tenant and project membership.

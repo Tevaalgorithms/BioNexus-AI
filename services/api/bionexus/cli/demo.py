@@ -1,4 +1,4 @@
-"""Offline demo: `python -m bionexus.demo` runs the Crohn's pilot scenario end to end."""
+"""Offline demo: `python -m bionexus.cli.demo` runs the Crohn's pilot scenario end to end."""
 
 from datetime import date
 

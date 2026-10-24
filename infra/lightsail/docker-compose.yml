@@ -49,7 +49,7 @@ services:
   worker:
     image: bionexus-api:${RELEASE:-local}
     restart: unless-stopped
-    command: ["python", "-m", "bionexus.worker_main"]
+    command: ["python", "-m", "bionexus.cli.worker"]
     environment: *app-env
     secrets: [aws_credentials]
     depends_on: { migrate: { condition: service_completed_successfully } }

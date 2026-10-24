@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from bionexus.admin_cli import build_parser, run
+from bionexus.cli.admin import build_parser, run
 from bionexus.contracts.identity import Role
 from bionexus.observability import JsonFormatter, log_event, redact
 from tests.conftest import fresh_postgres_storage

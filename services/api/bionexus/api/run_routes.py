@@ -9,8 +9,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from bionexus.api.deps import AppContainer, Caller
+from bionexus.application.presentation import run_detail, run_summary
 from bionexus.contracts.investigation import InvestigationRequest
-from bionexus.presentation import run_detail, run_summary
 
 router = APIRouter()
 

@@ -1,4 +1,4 @@
-"""Worker entrypoint: `python -m bionexus.worker_main`. Polls the durable job table."""
+"""Worker entrypoint: `python -m bionexus.cli.worker`. Polls the durable job table."""
 
 import signal
 import time

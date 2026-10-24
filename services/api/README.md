@@ -7,7 +7,7 @@ over HTTP and shares no code with it.
 ## How a request flows
 
 ```text
-HTTP route (api/) → service (services.py, projects.py, admin.py) → workflow (workflow/) → agents (agents/)
+HTTP route (api/) → service (application/) → workflow (workflow/) → agents (agents/)
                                                                          ↓                    ↓
                                                                   storage (storage/)   sources (sources/) and models (llm/)
 ```
@@ -28,6 +28,8 @@ without HTTP.
 | `storage/` | Storage ports, the in-memory store and `postgres/` (one module per store), plus migrations. |
 | `auth/` | Cognito token verification and authorisation rules. |
 | `api/` | Routes and request dependencies. |
+| `application/` | The services behind the routes: investigations, projects, admin, and shaping data for the UI. |
+| `cli/` | Entry points: `worker` (the job worker), `admin` (user tool) and `demo`. Run with `python -m bionexus.cli.<name>`. |
 | `container.py` | The one place everything is wired together. |
 
 ## Run, test, lint
@@ -37,7 +39,7 @@ cd services/api
 ../../.venv/bin/ruff check .              # lint, including the complexity limit (McCabe 5)
 ../../.venv/bin/ruff format --check .
 ../../.venv/bin/python -m pytest          # unit and API tests; most run against both stores
-../../.venv/bin/python -m bionexus.demo   # a full investigation on sample data
+../../.venv/bin/python -m bionexus.cli.demo   # a full investigation on sample data
 ```
 
 PostgreSQL test cases need a database; without `BIONEXUS_TEST_DSN` they skip and the in-memory ones still

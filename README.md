@@ -387,6 +387,8 @@ week3/
       jobs/            job leasing worker
       storage/         ports, in-memory store, postgres/ (one module per store), migrations
       api/             routes (runs, projects, admin), dependencies
+      application/     the services behind the routes: investigations, projects, admin, UI shaping
+      cli/             entry points: worker, admin user tool, offline demo
       evals/           baselines, ablations and metrics (synthetic reference set)
       container.py     the one place that wires everything together
       params.py        .env / SSM configuration source
@@ -434,7 +436,7 @@ scripts/init-env.sh             # writes .env with random local values (gitignor
 cd services/api
 ../../.venv/bin/ruff check .                  # lint, including the complexity limit
 ../../.venv/bin/python -m pytest              # unit and API tests
-../../.venv/bin/python -m bionexus.demo       # a full investigation, prints the draft report
+../../.venv/bin/python -m bionexus.cli.demo       # a full investigation, prints the draft report
 ../../.venv/bin/python -m bionexus.evals.run  # baselines vs the agent team vs an ablation
 ```
 
@@ -483,7 +485,7 @@ The production container (`bionexus.bootstrap.production_container`) uses Postgr
 ```bash
 docker build -f services/api/Dockerfile -t bionexus-api:local .
 docker build -t bionexus-web:local apps/web
-docker run --rm bionexus-api:local python -m bionexus.demo      # a full run inside the image
+docker run --rm bionexus-api:local python -m bionexus.cli.demo      # a full run inside the image
 ```
 
 Releases deploy from GitHub Actions on a version tag, after CI passes and a reviewer approves ([`deploy.yml`](.github/workflows/deploy.yml)). The Compose stack in `infra/lightsail/` is for the production host: its containers read every setting from AWS SSM using one bootstrap credential. See [`docs/configuration.md`](docs/configuration.md) and [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md). The Terraform can be checked offline with `terraform init -backend=false && terraform validate`.
