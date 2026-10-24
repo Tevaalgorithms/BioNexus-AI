@@ -23,7 +23,7 @@ GitHub's normal failure email.
 1. Set `github_repo` in your tfvars and run `terraform apply`. Note the outputs `deploy_role_arn`, `ecr_registry`, `ssm_activation_id`.
 2. The new server registers itself with SSM on first boot (cloud-init uses a one-time code that expires after 7 days).
    Check: `aws ssm describe-instance-information` lists it as Online. If it is not listed within a few minutes of first boot, or the 7-day code expired, run `terraform apply -replace=aws_ssm_activation.host` for a new code and register by hand in the Lightsail browser terminal: `sudo snap stop amazon-ssm-agent && sudo amazon-ssm-agent -register -code <code> -id <id> -region <region> && sudo snap start amazon-ssm-agent`.
-3. First-time server secrets need no manual step: the deploy copies `POSTGRES_PASSWORD` and `bootstrap/aws_credentials` from SSM onto the server (mode 600) using the server's own SSM identity (`scripts/fetch-bootstrap-secrets.sh`). Only `/etc/bionexus/backup.env` (daily backups) is set up separately, see `secrets.md`.
+3. First-time server secrets need no manual step: the deploy copies `POSTGRES_PASSWORD` and `bootstrap/aws_credentials` from SSM onto the server (directory 0700) using the server's own SSM identity (`scripts/fetch-bootstrap-secrets.sh`). Only `/etc/bionexus/backup.env` (daily backups) is set up separately, see `secrets.md`.
 4. In GitHub: Settings, Environments, create **production** and add yourself as a required reviewer. In it add these
    variables (none are secret): `DEPLOY_ROLE_ARN`, `ECR_REGISTRY`, `SSM_ACTIVATION_ID`, `AWS_REGION`, `PUBLIC_HOST`.
 5. Push a tag.
