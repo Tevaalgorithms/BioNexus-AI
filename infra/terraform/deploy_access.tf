@@ -7,6 +7,12 @@ variable "github_repo" {
   description = "GitHub repository allowed to deploy, as owner/name."
 }
 
+variable "github_subject_prefix" {
+  type        = string
+  default     = ""
+  description = "Only if the repo uses GitHub's immutable OIDC subject: the exact sub_claim_prefix from `gh api repos/OWNER/NAME/actions/oidc/customization/sub`. Empty means repo:<github_repo>."
+}
+
 variable "create_github_oidc_provider" {
   type        = bool
   default     = true
@@ -115,7 +121,7 @@ data "aws_iam_policy_document" "deploy_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:production"]
+      values   = ["${var.github_subject_prefix != "" ? var.github_subject_prefix : "repo:${var.github_repo}"}:environment:production"]
     }
   }
 }
