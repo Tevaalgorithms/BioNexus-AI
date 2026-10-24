@@ -377,7 +377,7 @@ week3/
       contracts/       typed data models: evidence, messages, projects, lifecycle, errors
       auth/            Cognito token verifier, authorization rules
       llm/             model catalogue, configuration releases, gateway, LangChain clients
-      sources/         guarded HTTP, six live adapters, offline fixtures (synthetic)
+      sources/         guarded HTTP, live/ (one module per source), offline fixtures (synthetic)
       evidence/        eligibility gate (licence, cutoff), study-family matrix
       agents/          one file per agent: supervisor, genetics, literature, pathways, clinical, critic, synthesizer; skills
       messaging/       message envelope builder and router
@@ -385,20 +385,20 @@ week3/
       memory/, retrieval/   reviewed project memory; full-text + vector search and evidence graph
       reporting/       builder, review, revision, Word export, next experiments
       jobs/            job leasing worker
-      storage/         ports, in-memory and PostgreSQL stores, migrations
+      storage/         ports, in-memory store, postgres/ (one module per store), migrations
       api/             routes (runs, projects, admin), dependencies
       evals/           baselines, ablations and metrics (synthetic reference set)
       container.py     the one place that wires everything together
       params.py        .env / SSM configuration source
     tests/             193 tests; most run against both stores
-  apps/web/            Next.js app: pages, components, sign-in (BFF), tests
+  apps/web/            Next.js app: pages, components grouped by feature, hooks, sign-in (BFF), tests
   skills/              versioned, hashed agent instructions (one per agent)
   config/              example model seed list (prices must be verified before use)
   infra/terraform/     Lightsail, Cognito, SSM parameters, budget
   infra/lightsail/     Docker Compose stack and Caddy proxy
   scripts/             init-env, ci-deploy (ship a release), deploy with rollback, encrypted backup, restore, host patching
   docs/                implementation status, configuration, ADR, runbooks
-  .github/workflows/   ci.yml
+  .github/workflows/   ci.yml (checks), deploy.yml (release on a tag)
   todo.md              the full implementation plan and its task ids
 ```
 
@@ -410,6 +410,8 @@ week3/
 4. [`docs/runbooks/`](docs/runbooks/README.md): users and roles, deploy and rollback, restore, secrets, incidents.
 5. [`todo.md`](todo.md): the 21-phase plan with task ids (`AUTH-09`, `MODEL-11`, …) that code and docs refer to.
 6. [`infra/terraform/`](infra/terraform) and [`infra/lightsail/`](infra/lightsail): the deployment definition.
+7. [`services/api/README.md`](services/api/README.md) and [`apps/web/README.md`](apps/web/README.md): where things live in each half, and how to run and test it.
+8. [`CONTRIBUTING.md`](CONTRIBUTING.md): how to make a change, the checks, and the standards.
 
 ## Run it locally
 

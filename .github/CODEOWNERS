@@ -1,0 +1,5 @@
+# Every change needs a review from the owner. Narrow this per folder when more maintainers join.
+*                  @Tevaalgorithms
+/infra/            @Tevaalgorithms
+/.github/          @Tevaalgorithms
+/scripts/          @Tevaalgorithms
