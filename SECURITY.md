@@ -29,3 +29,17 @@ scan), and `terraform validate`.
 See "Limits and honest caveats" in the [README](README.md). In short: not yet run against a real Cognito
 pool or deployed; the API has no rate limiting yet; the web app's Content-Security-Policy allows inline scripts
 (needed for the theme setting and Next.js); sessions are held in server memory.
+
+## Stopping secrets from reaching GitHub
+
+GitHub's own secret scanning and push protection are not available for a private repository on a personal account
+(the API answers "not available for this repository"). They are free if the repository is public or on a plan with
+GitHub Advanced Security. Until then, three layers apply:
+
+1. **Commit hook (per clone).** Run `scripts/install-hooks.sh` once. Every commit is scanned with gitleaks and blocked if it
+   contains a secret or a file such as `.env`, `terraform.tfvars`, `*.tfstate`, `tfplan`, `*.pem` or `*.key`.
+2. **CI.** Every push and pull request runs gitleaks over the whole history (`.github/workflows/ci.yml`).
+3. **`.gitignore`.** Local settings, Terraform state and plans, and server secret files are ignored.
+
+Hooks can be skipped with `--no-verify`, so treat layer 2 as the real guarantee: set a branch protection rule requiring
+the `secrets-and-infra` check before merging. If a secret is ever pushed, rotate it first, then clean the history.

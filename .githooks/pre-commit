@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Blocks a commit that contains a secret or a file that must never be committed.
+# Installed by scripts/install-hooks.sh. Do not bypass with --no-verify.
+set -euo pipefail
+
+FORBIDDEN='(^|/)(\.env|terraform\.tfvars|[^/]*\.tfstate(\.backup)?|tfplan|[^/]*\.tfplan|[^/]*\.pem|[^/]*\.key|age-identity[^/]*|aws_credentials|postgres_password)$'
+bad="$(git diff --cached --name-only --diff-filter=ACM | grep -E "$FORBIDDEN" || true)"
+if [ -n "$bad" ]; then
+  echo "Commit blocked. These files must never be committed:" >&2
+  echo "$bad" | sed 's/^/  /' >&2
+  exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+elif command -v docker >/dev/null 2>&1; then
+  docker run --rm -v "$PWD":/repo -w /repo zricethezav/gitleaks:latest protect --staged --redact --no-banner
+else
+  echo "Install gitleaks (brew install gitleaks) or Docker so commits can be scanned." >&2
+  exit 1
+fi
