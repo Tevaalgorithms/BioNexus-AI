@@ -222,7 +222,7 @@ class InMemoryProjects:
             raise Conflict(f"A project named '{project.project_id}' already exists")
         self._projects[key] = project
 
-    def list(self, tenant_id: str) -> list[Project]:
+    def all(self, tenant_id: str) -> list[Project]:
         return [p for (t, _), p in self._projects.items() if t == tenant_id]
 
     def count(self, tenant_id: str) -> int:

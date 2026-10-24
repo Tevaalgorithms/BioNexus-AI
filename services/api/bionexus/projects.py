@@ -44,7 +44,7 @@ class ProjectService:
 
     def list_for(self, principal: Principal) -> list[dict]:
         """Every project the caller may open. Operator-assigned ones without a row get a default."""
-        stored = {p.project_id: p for p in self._projects.list(principal.tenant_id)}
+        stored = {p.project_id: p for p in self._projects.all(principal.tenant_id)}
         return [
             self._summary(stored.get(pid), pid, principal) for pid in sorted(principal.project_ids)
         ]
@@ -88,7 +88,7 @@ class ProjectService:
     def _require_owner(self, principal: Principal, project_id: str) -> Project:
         self._require_member(principal, project_id)
         project = next(
-            (p for p in self._projects.list(principal.tenant_id) if p.project_id == project_id),
+            (p for p in self._projects.all(principal.tenant_id) if p.project_id == project_id),
             None,
         )
         if project is None or project.created_by != principal.user_id:

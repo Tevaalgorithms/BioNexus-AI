@@ -395,7 +395,7 @@ class PostgresProjects:
         except Exception as error:  # primary-key violation: the id is taken in this tenant
             raise Conflict(f"A project named '{project.project_id}' already exists") from error
 
-    def list(self, tenant_id: str) -> list[Project]:
+    def all(self, tenant_id: str) -> list[Project]:
         rows = self._db.fetch_all(
             "SELECT * FROM projects WHERE tenant_id = %s ORDER BY created_at", (tenant_id,)
         )

@@ -20,7 +20,9 @@ from typing import Protocol
 from bionexus.contracts.errors import InvalidRequest
 
 DEFAULT_PREFIX = "/bionexus/prod/"
-DEFAULT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+# Repository root in a checkout; the current directory when installed elsewhere (e.g. a container).
+_PARTS = Path(__file__).resolve().parents
+DEFAULT_ENV_FILE = (_PARTS[3] if len(_PARTS) > 3 else Path.cwd()) / ".env"
 # Each refresh decrypts SecureStrings through KMS (billed per request after 20,000 free a month).
 # Five minutes keeps that near zero; lower it only if you need faster rotation.
 REFRESH_SECONDS = float(os.environ.get("BIONEXUS_PARAM_REFRESH_SECONDS", "300"))
