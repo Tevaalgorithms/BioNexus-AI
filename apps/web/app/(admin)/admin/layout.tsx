@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import Shell, { NavItem } from "@/components/Shell";
+import Shell, { NavItem } from "@/components/layout/Shell";
 import { currentSession } from "@/lib/session";
 
 const ITEMS: NavItem[] = [

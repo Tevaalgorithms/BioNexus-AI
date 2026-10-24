@@ -1,2 +1,2 @@
-import AdminOverview from "@/components/AdminOverview";
+import AdminOverview from "@/components/admin/AdminOverview";
 export default function Page() { return <AdminOverview />; }

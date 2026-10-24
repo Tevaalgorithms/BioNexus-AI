@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { AGENTS, GLOSSARY, STAGES } from "@/lib/explain";
-import { Icon } from "./icons";
-import { TeamDiagram } from "./illustrations";
-import { Callout, PageHeader } from "./ui";
+import { Icon } from "../ui/icons";
+import { TeamDiagram } from "../ui/illustrations";
+import { Callout, PageHeader } from "../ui/primitives";
 
 export default function HelpCenter({ audience }: { audience: "scientist" | "admin" }) {
   return (

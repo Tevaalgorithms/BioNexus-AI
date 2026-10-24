@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui";
+import { PageHeader } from "@/components/ui/primitives";
 import { currentSession } from "@/lib/session";
 
 export default async function Page() {

@@ -1,5 +1,5 @@
-import NewAnalysisForm from "@/components/NewAnalysisForm";
-import { PageHeader } from "@/components/ui";
+import NewAnalysisForm from "@/components/runs/NewAnalysisForm";
+import { PageHeader } from "@/components/ui/primitives";
 
 export default function Page() {
   return (

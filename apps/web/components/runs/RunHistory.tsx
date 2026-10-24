@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { Suspense } from "react";
-import DataTable, { Column } from "./DataTable";
-import StatusBadge from "./StatusBadge";
-import { Empty, ErrorNotice, Loading } from "./Async";
-import { useLoad } from "./useApi";
+import DataTable, { Column } from "../ui/DataTable";
+import StatusBadge from "../ui/StatusBadge";
+import { Empty, ErrorNotice, Loading } from "../ui/Async";
+import { useLoad } from "../../hooks/useApi";
 import type { RunSummary } from "@/lib/types";
 
 const COLUMNS: Column<RunSummary>[] = [

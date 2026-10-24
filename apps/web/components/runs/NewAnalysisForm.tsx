@@ -1,11 +1,11 @@
 "use client";
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Icon } from "./icons";
-import { Callout } from "./ui";
-import CreateProjectDialog, { CreateProjectHandle } from "./CreateProjectDialog";
-import { useProjects } from "./useProjects";
-import { ApiError, call, useLoad } from "./useApi";
+import { Icon } from "../ui/icons";
+import { Callout } from "../ui/primitives";
+import CreateProjectDialog, { CreateProjectHandle } from "../projects/CreateProjectDialog";
+import { useProjects } from "../../hooks/useProjects";
+import { ApiError, call, useLoad } from "../../hooks/useApi";
 import { PRESETS, coveredByDemo } from "@/lib/presets";
 import { SOURCE_LABELS } from "@/lib/explain";
 

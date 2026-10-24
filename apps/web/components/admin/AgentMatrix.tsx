@@ -1,10 +1,10 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import { ApiError, call, useLoad } from "./useApi";
-import { ErrorNotice, Loading } from "./Async";
-import { Icon } from "./icons";
+import { ApiError, call, useLoad } from "../../hooks/useApi";
+import { ErrorNotice, Loading } from "../ui/Async";
+import { Icon } from "../ui/icons";
 import { ConfigFlowDiagram } from "./diagrams";
-import { PageHeader } from "./ui";
+import { PageHeader } from "../ui/primitives";
 import { AGENTS, SKILL_FOR } from "@/lib/explain";
 import type { ModelRow, Release } from "@/lib/types";
 

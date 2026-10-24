@@ -1,6 +1,6 @@
 import { AGENTS, SOURCE_LABELS } from "@/lib/explain";
 import type { Report, RunDetail } from "@/lib/types";
-import { Icon } from "./icons";
+import { Icon } from "../ui/icons";
 
 /** Who did what in this run, with the model each agent actually used (from the manifest). */
 export default function AgentTeam({ detail, report }: { detail: RunDetail; report?: Report }) {

@@ -1,2 +1,2 @@
-import HelpCenter from "@/components/HelpCenter";
+import HelpCenter from "@/components/help/HelpCenter";
 export default function Page() { return <HelpCenter audience="scientist" />; }

@@ -1,7 +1,7 @@
 "use client";
 import { ProjectHistory } from "./RunHistory";
-import { Empty, ErrorNotice, Loading } from "./Async";
-import { useProjects } from "./useProjects";
+import { Empty, ErrorNotice, Loading } from "../ui/Async";
+import { useProjects } from "../../hooks/useProjects";
 
 export default function ReviewQueue() {
   const { data, error, loading, reload } = useProjects();

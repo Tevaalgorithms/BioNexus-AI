@@ -2,12 +2,12 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import CreateProjectDialog, { CreateProjectHandle } from "./CreateProjectDialog";
-import { Icon } from "./icons";
-import { EmptyIllustration } from "./illustrations";
-import { Empty, ErrorNotice, Loading } from "./Async";
-import { PageHeader } from "./ui";
-import { ApiError, call } from "./useApi";
-import { ProjectRow, useProjects } from "./useProjects";
+import { Icon } from "../ui/icons";
+import { EmptyIllustration } from "../ui/illustrations";
+import { Empty, ErrorNotice, Loading } from "../ui/Async";
+import { PageHeader } from "../ui/primitives";
+import { ApiError, call } from "../../hooks/useApi";
+import { ProjectRow, useProjects } from "../../hooks/useProjects";
 
 function Members({ project }: { project: ProjectRow }) {
   const [members, setMembers] = useState<string[] | null>(null);

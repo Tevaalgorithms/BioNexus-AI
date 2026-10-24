@@ -1,5 +1,5 @@
-import { Icon } from "@/components/icons";
-import { HeroNetwork, Logo, TeamDiagram } from "@/components/illustrations";
+import { Icon } from "@/components/ui/icons";
+import { HeroNetwork, Logo, TeamDiagram } from "@/components/ui/illustrations";
 import { STAGES } from "@/lib/explain";
 
 const PHASES = [

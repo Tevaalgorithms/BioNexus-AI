@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import { Session } from "@/lib/session";
-import { Icon, IconName } from "./icons";
-import { Logo } from "./illustrations";
-import NavLink from "./NavLink";
-import ThemeToggle from "./ThemeToggle";
+import { Icon, IconName } from "../ui/icons";
+import { Logo } from "../ui/illustrations";
+import NavLink from "../ui/NavLink";
+import ThemeToggle from "../ui/ThemeToggle";
 
 export interface NavItem { href: string; label: string; icon: IconName }
 

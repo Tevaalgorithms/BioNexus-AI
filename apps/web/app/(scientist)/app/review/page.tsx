@@ -1,5 +1,5 @@
-import ReviewQueue from "@/components/ReviewQueue";
-import { Callout, PageHeader } from "@/components/ui";
+import ReviewQueue from "@/components/runs/ReviewQueue";
+import { Callout, PageHeader } from "@/components/ui/primitives";
 
 export default function Page() {
   return (

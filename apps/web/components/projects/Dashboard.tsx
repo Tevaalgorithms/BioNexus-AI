@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EmptyIllustration } from "./illustrations";
-import { Kpi, PageHeader } from "./ui";
-import { ProjectHistory } from "./RunHistory";
-import { call } from "./useApi";
-import { useProjects } from "./useProjects";
+import { EmptyIllustration } from "../ui/illustrations";
+import { Kpi, PageHeader } from "../ui/primitives";
+import { ProjectHistory } from "../runs/RunHistory";
+import { call } from "../../hooks/useApi";
+import { useProjects } from "../../hooks/useProjects";
 import type { RunSummary } from "@/lib/types";
 
 export default function Dashboard() {

@@ -1,10 +1,10 @@
 "use client";
 import { useRef, useState } from "react";
 import type { Report } from "@/lib/types";
-import Markdown from "./Markdown";
-import { Icon } from "./icons";
-import { Callout } from "./ui";
-import { ApiError, call } from "./useApi";
+import Markdown from "../ui/Markdown";
+import { Icon } from "../ui/icons";
+import { Callout } from "../ui/primitives";
+import { ApiError, call } from "../../hooks/useApi";
 
 export default function ReportTab({ runId, report, canApprove, onChanged }: { runId: string; report: Report; canApprove: boolean; onChanged: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);

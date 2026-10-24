@@ -4,12 +4,12 @@ import ActivityFeed, { Timeline } from "./ActivityFeed";
 import AgentTeam from "./AgentTeam";
 import EvidenceTab from "./EvidenceTab";
 import ReportTab from "./ReportTab";
-import Stepper from "./Stepper";
-import StatusBadge from "./StatusBadge";
-import { Empty, ErrorNotice, Loading } from "./Async";
-import { Callout, InfoTip, Kpi } from "./ui";
-import { ApiError, call, useLoad } from "./useApi";
-import { useRunEvents } from "./useRunEvents";
+import Stepper from "../ui/Stepper";
+import StatusBadge from "../ui/StatusBadge";
+import { Empty, ErrorNotice, Loading } from "../ui/Async";
+import { Callout, InfoTip, Kpi } from "../ui/primitives";
+import { ApiError, call, useLoad } from "../../hooks/useApi";
+import { useRunEvents } from "../../hooks/useRunEvents";
 import { statusSentence } from "@/lib/explain";
 import type { Report, RunDetail } from "@/lib/types";
 

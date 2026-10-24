@@ -1,2 +1,2 @@
-import { ModelRegistry } from "@/components/AdminTables";
+import { ModelRegistry } from "@/components/admin/ModelRegistry";
 export default function Page() { return <ModelRegistry />; }

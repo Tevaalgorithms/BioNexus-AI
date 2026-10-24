@@ -2,10 +2,10 @@
 import { useState } from "react";
 import type { RunDetail } from "@/lib/types";
 import { SOURCE_LABELS, STANCE_HELP, STANCE_LABEL } from "@/lib/explain";
-import { StanceChart, StanceLegend } from "./Charts";
-import { Icon } from "./icons";
-import { Callout, InfoTip } from "./ui";
-import { ApiError, call } from "./useApi";
+import { StanceChart, StanceLegend } from "../ui/Charts";
+import { Icon } from "../ui/icons";
+import { Callout, InfoTip } from "../ui/primitives";
+import { ApiError, call } from "../../hooks/useApi";
 
 export default function EvidenceTab({ detail, canRevise, onChanged }: { detail: RunDetail; canRevise: boolean; onChanged: () => void }) {
   const draftKey = `bn-exclude-reason-${detail.run_id}`;

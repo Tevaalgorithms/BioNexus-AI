@@ -1,4 +1,4 @@
-import type { IconName } from "@/components/icons";
+import type { IconName } from "@/components/ui/icons";
 
 /** Plain-language descriptions shown across the UI. One place, so wording stays consistent. */
 

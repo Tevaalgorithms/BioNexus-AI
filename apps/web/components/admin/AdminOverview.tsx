@@ -1,9 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
-import { HBars } from "./Charts";
-import { Callout, Kpi, PageHeader } from "./ui";
-import { ApiError, call, useLoad } from "./useApi";
-import { ErrorNotice, Loading } from "./Async";
+import { HBars } from "../ui/Charts";
+import { Callout, Kpi, PageHeader } from "../ui/primitives";
+import { ApiError, call, useLoad } from "../../hooks/useApi";
+import { ErrorNotice, Loading } from "../ui/Async";
 
 interface Health { queue_depth: number; runs_by_status: Record<string, number>; emergency_stop: boolean }
 

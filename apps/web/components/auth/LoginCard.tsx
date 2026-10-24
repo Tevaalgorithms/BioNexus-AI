@@ -1,5 +1,5 @@
-import { Icon } from "./icons";
-import { HeroNetwork, Logo } from "./illustrations";
+import { Icon } from "../ui/icons";
+import { HeroNetwork, Logo } from "../ui/illustrations";
 
 export default function LoginCard({ kind, returnTo }: { kind: "admin" | "scientist"; returnTo?: string }) {
   const admin = kind === "admin";
