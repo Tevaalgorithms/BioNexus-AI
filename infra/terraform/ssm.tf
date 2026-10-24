@@ -29,12 +29,21 @@ locals {
   tunable = toset(["BIONEXUS_RUN_BUDGET_USD", "BIONEXUS_RUN_WARN_USD", "BIONEXUS_RUN_MAX_CALLS", "BIONEXUS_TENANT_MONTHLY_USD"])
 }
 
+# Values derived from other resources stay in step with Terraform ...
 resource "aws_ssm_parameter" "plain" {
-  for_each = local.plain
+  for_each = { for k, v in local.plain : k => v if !contains(local.tunable, k) }
   name     = "${local.prefix}/${each.key}"
   type     = "String"
   value    = each.value
-  lifecycle { ignore_changes = [value] } # first apply sets it; later edits are made in SSM
+}
+
+# ... while the budgets operators tune are set once and never reverted.
+resource "aws_ssm_parameter" "tunable" {
+  for_each = { for k, v in local.plain : k => v if contains(local.tunable, k) }
+  name     = "${local.prefix}/${each.key}"
+  type     = "String"
+  value    = each.value
+  lifecycle { ignore_changes = [value] }
 }
 
 # Generated secrets. They also sit in Terraform state, so use an encrypted remote backend.
@@ -97,4 +106,24 @@ resource "aws_iam_user_policy" "runtime" {
   name   = "read-bionexus-parameters"
   user   = aws_iam_user.runtime.name
   policy = data.aws_iam_policy_document.runtime.json
+}
+
+moved {
+  from = aws_ssm_parameter.plain["BIONEXUS_RUN_BUDGET_USD"]
+  to   = aws_ssm_parameter.tunable["BIONEXUS_RUN_BUDGET_USD"]
+}
+
+moved {
+  from = aws_ssm_parameter.plain["BIONEXUS_RUN_MAX_CALLS"]
+  to   = aws_ssm_parameter.tunable["BIONEXUS_RUN_MAX_CALLS"]
+}
+
+moved {
+  from = aws_ssm_parameter.plain["BIONEXUS_RUN_WARN_USD"]
+  to   = aws_ssm_parameter.tunable["BIONEXUS_RUN_WARN_USD"]
+}
+
+moved {
+  from = aws_ssm_parameter.plain["BIONEXUS_TENANT_MONTHLY_USD"]
+  to   = aws_ssm_parameter.tunable["BIONEXUS_TENANT_MONTHLY_USD"]
 }
