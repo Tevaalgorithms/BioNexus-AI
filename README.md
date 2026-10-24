@@ -110,6 +110,80 @@ graph TB
 
 More detail, with sequence diagrams of sign-in, a run and the review step, and a map from each step to its code, is in [`docs/architecture.md`](docs/architecture.md).
 
+## Agents and how they talk
+
+### The agents
+
+| Agent | Job | Uses a model? |
+| --- | --- | --- |
+| **Supervisor** | Plans the run. It starts genetics, literature and clinical every time; which agents run is never left to a model. | No |
+| **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. | Summary |
+| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. | Summary and stance |
+| **Pathways** | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Summary |
+| **Clinical** | Registered trials from ClinicalTrials.gov. | Summary |
+| **Critic** | Finds three kinds of problem with plain code: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It then asks for repairs. | A short note only |
+| **Synthesizer** | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | Narrative |
+
+Each agent has an approved, versioned, hashed instruction file in `skills/`. The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+
+### The flow
+
+```mermaid
+flowchart TB
+    REQ["Scientist's request<br/>disease · genes · question · cutoff"] --> SUP["Supervisor<br/>plans fixed tasks, no model"]
+    SUP -- "task.request" --> GEN["Genetics<br/>Open Targets · GWAS"]
+    SUP -- "task.request" --> LIT["Literature<br/>Europe PMC"]
+    SUP -- "task.request" --> CLI["Clinical<br/>ClinicalTrials.gov"]
+    GEN -- "task.request<br/>only genes with genetic support" --> PATH["Pathways<br/>Reactome · Monarch"]
+    GEN --> EV["Eligible evidence<br/>each specialist applies the gate:<br/>licence · cutoff · not excluded"]
+    LIT --> EV
+    CLI --> EV
+    PATH --> EV
+    EV --> CRIT["Critic<br/>missing passages · contradictions<br/>single-study support"]
+    CRIT -- "evidence.challenge<br/>repair loop, at most 2 rounds" --> LIT
+    CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
+    RANK --> SYN["Synthesizer<br/>claims from accepted evidence only"]
+    SYN --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
+```
+
+Up to two specialists run at the same time. The workflow, not an agent, calls the synthesizer after ranking.
+
+### Agent-to-agent communication
+
+Agents never call each other directly. An agent returns messages, and the dispatcher hands every one to a **router** that checks it before delivery. This is BioNexus's own internal protocol, not the external Agent2Agent standard.
+
+```mermaid
+sequenceDiagram
+    participant S as Supervisor
+    participant G as Genetics
+    participant P as Pathways
+    participant C as Critic
+    participant L as Literature
+    S->>G: task.request (genes)
+    G-->>S: task.result
+    G->>P: task.request (supported genes only)
+    P-->>G: task.result
+    S->>C: task.request (repair round)
+    C->>L: evidence.challenge (supply the supporting passage)
+    L-->>C: task.result (the passage, or "not found")
+```
+
+**The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are four types: `task.request`, `task.result`, `task.failed` and `evidence.challenge`.
+
+**What the router enforces** (`messaging/router.py`):
+
+| Rule | Detail |
+| --- | --- |
+| Allowlist | Supervisor may message every other agent. Genetics may message pathways. The critic may message the four specialists. Anything else is rejected. |
+| Replies | A `task.result` or `task.failed` is accepted only as an answer to a message that was addressed to the sender. |
+| Depth cap | A chain of handoffs may be at most 3 deep. |
+| Volume cap | At most 40 messages per run. |
+| No duplicates | A message with the same idempotency key (sender, recipient, type and payload) is dropped, so a retry never repeats work. |
+
+The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists and to the critic, genetics to pathways, and critic to literature.
+
+**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed (`agent.handoff`: from, to, type), so a reviewer can see who asked whom. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
+
 ## Technology
 
 | Layer | Choice |
