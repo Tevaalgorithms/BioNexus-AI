@@ -33,20 +33,6 @@ In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 secon
 - **Spending caps:** per-run and per-organisation model budgets, reserved before each call.
 - **Configuration:** a git-ignored `.env` locally, AWS SSM Parameter Store in production. No secret is in the code.
 
-## How this compares with existing products
-
-Several good products help with parts of this problem. BioNexus does not replace them. The descriptions come from each product's public material, checked in October 2026. Vendor figures are the vendors' claims, so confirm before relying on them.
-
-| Product | What it is | Where BioNexus is different |
-|---|---|---|
-| [Open Targets Platform](https://platform-docs.opentargets.org/associations) | Free public resource that scores target-disease links. Its own documentation says the score reflects *how much* evidence exists, not how good it is. | BioNexus uses it as one source, then counts independent study families, shows direction and flags contradictions. It produces no single score. |
-| [Causaly](https://www.causaly.com/use-cases/target-identification-prioritization) | Commercial platform with a proprietary knowledge graph for target identification. | Causaly has a far larger curated knowledge base. BioNexus is open to inspect and run yourself, and bases every claim on passages fetched from public sources for that run. |
-| [Insilico PandaOmics](https://www.bio-itworld.com/news/2024/02/27/validated-ai-driven-target-identification-and-biomarker-discovery-with-insilico-medicine-s-pandaomics) | Commercial AI platform that ranks targets from omics, text and expert scores. | PandaOmics predicts targets from omics data, which BioNexus does not. BioNexus reviews published evidence and abstains when it is thin. |
-| [Elicit](https://elicit.com/) and similar | General AI tools that search papers and extract data into tables. | Built for literature review in any field. BioNexus answers one question, a gene and a disease, across genetics, pathways and trials as well as papers. |
-| Searching by hand | The usual baseline. | Slow and hard to repeat, but fully under the scientist's control. BioNexus automates the gathering and keeps the sign-off. |
-
-**Where existing products are stronger:** scale and curation (they cover far more data than six public sources), prediction (BioNexus only reviews evidence), and maturity (they have customers, support and validation; BioNexus has not yet been shown to beat a simpler single-agent approach on a real evaluation set).
-
 ## Architecture
 
 Solid boxes are built and tested. Dashed boxes exist in code but have not been verified against the live service.
@@ -265,6 +251,20 @@ Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, push
 - **No MFA.** Sign-in is invite-only with a password.
 - **Not built:** remove-member and delete-project, mapping corrections, scheduled source refresh, raw-response capture, a Python lockfile, alert delivery.
 - **No treatment advice.** BioNexus assesses public evidence for research use. It does not diagnose, recommend treatment, accept patient records, or establish that a gene causes a disease. Counts guide judgement and are not probabilities.
+
+## How this compares with existing products
+
+Several good products help with parts of this problem. BioNexus does not replace them. The descriptions come from each product's public material, checked in October 2026. Vendor figures are the vendors' claims, so confirm before relying on them.
+
+| Product | What it is | Where BioNexus is different |
+|---|---|---|
+| [Open Targets Platform](https://platform-docs.opentargets.org/associations) | Free public resource that scores target-disease links. Its own documentation says the score reflects *how much* evidence exists, not how good it is. | BioNexus uses it as one source, then counts independent study families, shows direction and flags contradictions. It produces no single score. |
+| [Causaly](https://www.causaly.com/use-cases/target-identification-prioritization) | Commercial platform with a proprietary knowledge graph for target identification. | Causaly has a far larger curated knowledge base. BioNexus is open to inspect and run yourself, and bases every claim on passages fetched from public sources for that run. |
+| [Insilico PandaOmics](https://www.bio-itworld.com/news/2024/02/27/validated-ai-driven-target-identification-and-biomarker-discovery-with-insilico-medicine-s-pandaomics) | Commercial AI platform that ranks targets from omics, text and expert scores. | PandaOmics predicts targets from omics data, which BioNexus does not. BioNexus reviews published evidence and abstains when it is thin. |
+| [Elicit](https://elicit.com/) and similar | General AI tools that search papers and extract data into tables. | Built for literature review in any field. BioNexus answers one question, a gene and a disease, across genetics, pathways and trials as well as papers. |
+| Searching by hand | The usual baseline. | Slow and hard to repeat, but fully under the scientist's control. BioNexus automates the gathering and keeps the sign-off. |
+
+**Where existing products are stronger:** scale and curation (they cover far more data than six public sources), prediction (BioNexus only reviews evidence), and maturity (they have customers, support and validation; BioNexus has not yet been shown to beat a simpler single-agent approach on a real evaluation set).
 
 ## Documentation
 
