@@ -114,15 +114,17 @@ More detail, with sequence diagrams of sign-in, a run and the review step, and a
 
 ### The agents
 
-| Agent | Job | Uses a model? |
+| Agent | Job | What it uses a model for |
 | --- | --- | --- |
-| **Supervisor** | Plans the run. It starts genetics, literature and clinical every time; which agents run is never left to a model. | No |
+| **Supervisor** | Plans the run. It starts genetics, literature and clinical every time; which agents run is never left to a model. | Nothing |
 | **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. | Summary |
 | **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. | Summary and stance |
 | **Pathways** | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Summary |
 | **Clinical** | Registered trials from ClinicalTrials.gov. | Summary |
 | **Critic** | Finds three kinds of problem with plain code: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It then asks for repairs. | A short note only |
 | **Synthesizer** | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | Narrative |
+
+**Which model?** It is not fixed in the code. Each agent is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per agent in **Agents & models**, so the synthesizer can use a different model from the specialists. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. The supervisor has a binding but never calls a model.
 
 Each agent has an approved, versioned, hashed instruction file in `skills/`. The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
 
