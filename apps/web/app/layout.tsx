@@ -8,9 +8,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" data-theme="light" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('bionexus-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('bionexus-theme'),r=document.documentElement;if(t==='dark')r.setAttribute('data-theme','dark');else if(t==='system')r.removeAttribute('data-theme')}catch(e){}` }} />
       </head>
       <body>
         <a className="skip" href="#content">Skip to content</a>

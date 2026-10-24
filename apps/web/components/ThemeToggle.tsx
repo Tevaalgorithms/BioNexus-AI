@@ -10,9 +10,9 @@ function apply(choice: Choice) {
   else root.setAttribute("data-theme", choice);
 }
 
-/** Light, dark or follow the device. The choice is a per-browser convenience only. */
+/** Light by default; dark or follow-the-device are opt-in. The choice is a per-browser convenience only. */
 export default function ThemeToggle() {
-  const [choice, setChoice] = useState<Choice>("system");
+  const [choice, setChoice] = useState<Choice>("light");
   useEffect(() => {
     try { setChoice((localStorage.getItem(KEY) as Choice) || "system"); } catch { /* storage may be blocked */ }
   }, []);
@@ -22,7 +22,7 @@ export default function ThemeToggle() {
   };
   return (
     <div className="themebar" role="group" aria-label="Colour theme">
-      {(["system", "light", "dark"] as Choice[]).map((c) => (
+      {(["light", "dark", "system"] as Choice[]).map((c) => (
         <button key={c} type="button" aria-pressed={choice === c} onClick={() => pick(c)}>{c[0].toUpperCase() + c.slice(1)}</button>
       ))}
     </div>

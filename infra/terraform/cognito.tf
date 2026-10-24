@@ -69,3 +69,11 @@ resource "aws_cognito_user_group" "roles" {
   name         = each.key
   user_pool_id = aws_cognito_user_pool.main.id
 }
+
+# Branded sign-in page (classic hosted UI): logo and CSS live in ./branding and apply to every app client.
+resource "aws_cognito_user_pool_ui_customization" "main" {
+  user_pool_id = aws_cognito_user_pool.main.id
+  css          = file("${path.module}/branding/hosted-ui.css")
+  image_file   = filebase64("${path.module}/branding/logo.png")
+  depends_on   = [aws_cognito_user_pool_domain.main]
+}

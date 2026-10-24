@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="200" viewBox="0 0 700 200">
+  <rect width="700" height="200" fill="#ffffff"/>
+  <g transform="translate(40 36)" stroke="#0e4f7a" stroke-width="5" stroke-linecap="round" fill="none">
+    <path d="M64 64 L18 26 M64 64 L110 26 M64 64 L22 108 M64 64 L106 108"/>
+  </g>
+  <g transform="translate(40 36)">
+    <circle cx="64" cy="64" r="17" fill="#0e4f7a"/>
+    <circle cx="18" cy="26" r="10" fill="#0b7a75"/><circle cx="110" cy="26" r="10" fill="#0b7a75"/>
+    <circle cx="22" cy="108" r="10" fill="#0b7a75"/><circle cx="106" cy="108" r="10" fill="#0b7a75"/>
+  </g>
+  <text x="205" y="104" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="58" font-weight="700" fill="#0c1f33">BioNexus <tspan fill="#0b7a75">AI</tspan></text>
+  <text x="207" y="144" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="25" fill="#4b5a6b">Evidence review for drug-target research</text>
+</svg>
