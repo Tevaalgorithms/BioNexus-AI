@@ -226,7 +226,7 @@ class InMemoryProjects:
         return [p for (t, _), p in self._projects.items() if t == tenant_id]
 
     def count(self, tenant_id: str) -> int:
-        return len(self.list(tenant_id))
+        return len(self.all(tenant_id))
 
     def add_member(self, tenant_id: str, project_id: str, user_id: str) -> None:
         self._members.setdefault((tenant_id, project_id), set()).add(user_id)
