@@ -114,6 +114,15 @@ def test_database_records_are_never_re_read(state):
     assert result.outgoing == []
 
 
+def test_a_handoff_says_what_the_challenge_asked_for(state):
+    from bionexus.application.presentation import timeline_entry
+
+    contested(state)
+    challenge = critic().handle(critic_task(state), state).outgoing[0]
+    assert timeline_entry(challenge)["ask"] == ChallengeAsk.RECHECK_DIRECTION
+    assert timeline_entry(critic_task(state))["ask"] is None
+
+
 def test_the_same_record_is_challenged_only_once(state):
     contested(state)
     first = critic().handle(critic_task(state), state).outgoing

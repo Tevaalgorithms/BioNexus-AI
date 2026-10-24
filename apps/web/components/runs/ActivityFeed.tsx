@@ -5,11 +5,15 @@ import { AGENTS, STAGES } from "@/lib/explain";
 const agentName = (id: string) => AGENTS.find((a) => a.id === id)?.name ?? id;
 const stageName = (id: string) => STAGES.find((s) => s.id === id)?.label ?? id;
 
+/** What a challenge asked for: a missing passage, or a second look at a direction a model read. */
+const challengeKind = (ask?: string | null) => (ask?.includes("recheck") ? "Second look" : "Missing passage");
+
 function describe(e: RunEvent): string {
   if (e.kind === "stage.completed") return `Finished: ${stageName(e.data.stage)}`;
   if (e.kind === "agent.handoff") {
     const verb = e.data.type === "evidence.challenge" ? "challenged" : e.data.type === "task.result" ? "replied to" : "asked";
-    return `${agentName(e.data.from)} ${verb} ${agentName(e.data.to)}`;
+    const detail = e.data.type === "evidence.challenge" ? ` (${challengeKind(e.data.ask).toLowerCase()})` : "";
+    return `${agentName(e.data.from)} ${verb} ${agentName(e.data.to)}${detail}`;
   }
   return `Run ${String(e.data.status).replaceAll("_", " ")}${e.data.reason ? `: ${e.data.reason}` : ""}`;
 }
@@ -37,7 +41,7 @@ export function Timeline({ detail }: { detail: RunDetail }) {
         <thead><tr><th>From</th><th>To</th><th>What</th><th>Evidence</th></tr></thead>
         <tbody>{detail.timeline.map((m) => (
           <tr key={m.message_id}><td>{agentName(m.from)}</td><td>{agentName(m.to)}</td>
-            <td>{m.type === "task.request" ? "Task" : m.type === "task.result" ? "Reply" : m.type === "evidence.challenge" ? "Challenge" : m.type}</td>
+            <td>{m.type === "task.request" ? "Task" : m.type === "task.result" ? "Reply" : m.type === "evidence.challenge" ? `Challenge: ${challengeKind(m.ask).toLowerCase()}` : m.type}</td>
             <td>{m.evidence_ids.join(", ") || "-"}</td></tr>
         ))}</tbody>
       </table></div>

@@ -86,4 +86,5 @@ def timeline_entry(message) -> dict:
         "type": message.type.value,
         "depth": message.depth,
         "evidence_ids": list(message.evidence_ids),
+        "ask": message.payload.get("ask"),  # what a challenge asked for, else None
     }

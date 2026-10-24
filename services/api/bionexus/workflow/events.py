@@ -17,6 +17,8 @@ class EventPublisher:
             "to": message.recipient.value,
             "type": message.type.value,
         }
+        if message.payload.get("ask"):
+            data["ask"] = message.payload["ask"]  # a challenge says what it asks for
         self._store.append(message.run_id, "agent.handoff", data)
 
     def status(self, run_id: str, status: str, reason: str | None = None) -> None:

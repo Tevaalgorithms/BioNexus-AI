@@ -172,7 +172,7 @@ sequenceDiagram
 
 The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists and to the critic, genetics to pathways, and critic to literature.
 
-**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed (`agent.handoff`: from, to, type), so a reviewer can see who asked whom. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
+**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for: a missing passage or a second look), so a reviewer can see who asked whom and why. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
 
 ## Technology
 
