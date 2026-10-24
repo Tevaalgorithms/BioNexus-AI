@@ -9,9 +9,12 @@ from langgraph.graph.state import CompiledStateGraph
 
 from bionexus.admin import AdminService
 from bionexus.agents.base import AgentDeps
+from bionexus.agents.clinical import ClinicalAgent
 from bionexus.agents.critic import CriticAgent
+from bionexus.agents.genetics import GeneticsAgent
+from bionexus.agents.literature import LiteratureAgent
+from bionexus.agents.pathways import PathwaysAgent
 from bionexus.agents.skills import SkillRegistry
-from bionexus.agents.specialists import ClinicalAgent, GeneticsAgent, LiteratureAgent, PathwaysAgent
 from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
 from bionexus.auth.policy import StaticTokenVerifier, TokenVerifier

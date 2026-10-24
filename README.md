@@ -310,7 +310,7 @@ An investigation turns a question into a **reviewed draft**. The scientist, not 
 | 2 Worker | `Worker.run_pending()`, `RunExecutor.execute()` | `jobs/worker.py`, `workflow/runner.py` |
 | Graph shape | `InvestigationGraph.build()` | `workflow/graph.py` |
 | 3 to 4 Scope, memory | `InvestigationNodes.scope()`, `.recall_memory()` | `workflow/nodes.py`, `storage/ports.py` |
-| 5 Specialists | `Dispatcher.run_parallel()`, `SpecialistAgent.assess()`, `GeneticsAgent.follow_ups()` | `workflow/dispatcher.py`, `agents/base.py`, `agents/specialists.py` |
+| 5 Specialists | `Dispatcher.run_parallel()`, `SpecialistAgent.assess()`, `GeneticsAgent.follow_ups()` | `workflow/dispatcher.py`, `agents/base.py`, `agents/genetics.py` |
 | Router | `MessageRouter.accept()` | `messaging/router.py` |
 | Eligibility | `partition_eligible()` | `evidence/eligibility.py` |
 | Sources | `GuardedHttp`, the six `*Source` classes | `sources/http.py`, `sources/live.py` |
@@ -379,7 +379,7 @@ week3/
       llm/             model catalogue, configuration releases, gateway, LangChain clients
       sources/         guarded HTTP, six live adapters, offline fixtures (synthetic)
       evidence/        eligibility gate (licence, cutoff), study-family matrix
-      agents/          supervisor, four specialists, critic, synthesizer, skill registry
+      agents/          one file per agent: supervisor, genetics, literature, pathways, clinical, critic, synthesizer; skills
       messaging/       message envelope builder and router
       workflow/        LangGraph graph, step logic, dispatcher, budget, executor, events
       memory/, retrieval/   reviewed project memory; full-text + vector search and evidence graph
