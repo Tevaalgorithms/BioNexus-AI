@@ -24,6 +24,9 @@ healthy() {
   return 1
 }
 
+fetch_secrets() { "$(dirname "$0")/fetch-bootstrap-secrets.sh" secrets; }
+fetch_secrets
+
 pull_images() {
   [ -n "${REGISTRY:-}" ] || return 0
   local region; region="$(echo "$REGISTRY" | cut -d. -f4)"

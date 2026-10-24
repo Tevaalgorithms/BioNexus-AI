@@ -158,3 +158,30 @@ resource "aws_iam_role_policy" "deploy" {
 output "deploy_role_arn" { value = aws_iam_role.deploy.arn }
 output "ecr_registry" { value = split("/", aws_ecr_repository.app["api"].repository_url)[0] }
 output "ssm_activation_id" { value = aws_ssm_activation.host.id }
+
+# The server may read exactly two parameters with its own SSM identity, so the first-time secrets
+# (database password, bootstrap access key) never have to be typed or pasted onto the host.
+data "aws_iam_policy_document" "host_bootstrap" {
+  statement {
+    actions = ["ssm:GetParameter"]
+    resources = [
+      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${local.prefix}/POSTGRES_PASSWORD",
+      "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter${local.prefix}/bootstrap/aws_credentials",
+    ]
+  }
+  statement {
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.region}.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "host_bootstrap" {
+  name   = "read-bootstrap-secrets"
+  role   = aws_iam_role.ssm_host.id
+  policy = data.aws_iam_policy_document.host_bootstrap.json
+}
