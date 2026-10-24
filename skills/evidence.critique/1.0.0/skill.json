@@ -1,0 +1,9 @@
+{
+  "skill_id": "evidence.critique",
+  "version": "1.0.0",
+  "owner": "critic",
+  "approved": true,
+  "instructions": "Find contradictions, missing passages and single-study dependence. Request bounded repairs.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}

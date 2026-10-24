@@ -1,0 +1,9 @@
+{
+  "skill_id": "investigation.plan",
+  "version": "1.0.0",
+  "owner": "supervisor",
+  "approved": true,
+  "instructions": "Plan the task list for the investigation using only approved agents and sources.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}

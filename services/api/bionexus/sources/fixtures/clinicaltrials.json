@@ -1,0 +1,18 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "CT-1",
+      "study_family": "FAM-J",
+      "target": "IL23R",
+      "finding": "FIXTURE: registered trial, no posted results",
+      "stance": "unknown",
+      "species": "human",
+      "context": "registered study",
+      "passage": "Synthetic fixture passage: registration only; efficacy not established.",
+      "available_on": "2023-01-01",
+      "license_ok": true
+    }
+  ]
+}

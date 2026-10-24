@@ -1,0 +1,17 @@
+{
+  "_note": "SYNTHETIC reference for the offline fixtures. It verifies the harness only; it says nothing about real-world accuracy. A real locked set must be written by scientists before viewing system output (EVAL-02).",
+  "cases": [
+    {
+      "case_id": "crohns-fixture",
+      "disease": "Crohn's disease",
+      "targets": ["NOD2", "IL23R"],
+      "cutoff": "2026-01-01",
+      "essential_evidence": [
+        "open_targets:OT-1", "open_targets:OT-2", "gwas:GWAS-1", "gwas:GWAS-2",
+        "europe_pmc:PMC-1", "europe_pmc:PMC-2", "reactome:RX-1", "reactome:RX-2"
+      ],
+      "known_contradictions": ["IL23R"],
+      "must_exclude": ["gwas:GWAS-3", "europe_pmc:PMC-3"]
+    }
+  ]
+}

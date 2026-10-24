@@ -1,0 +1,52 @@
+name: deploy
+# Release = push a tag like v0.1.0 (or run this workflow by hand on a tag/branch).
+# Order: same checks as CI -> manual approval (GitHub "production" environment) -> build and push images to ECR
+# -> tell the server to deploy through AWS Systems Manager -> health check.
+# No SSH key and no open SSH port: the server takes its orders from AWS, and GitHub signs in with short-lived OIDC.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions: { contents: read }
+
+concurrency: { group: deploy-production, cancel-in-progress: false }   # never two deploys at once
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: production        # add required reviewers here: Settings -> Environments -> production
+    timeout-minutes: 30
+    permissions: { contents: read, id-token: write }   # id-token: lets AWS trust this workflow (no stored AWS keys)
+    env:
+      RELEASE: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      REGISTRY: ${{ vars.ECR_REGISTRY }}               # terraform output ecr_registry
+      PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Find the server in Systems Manager
+        env:
+          ACTIVATION_ID: ${{ vars.SSM_ACTIVATION_ID }}   # terraform output ssm_activation_id
+        run: |
+          ID="$(aws ssm describe-instance-information \
+            --filters "Key=ActivationIds,Values=$ACTIVATION_ID" "Key=PingStatus,Values=Online" \
+            --query 'InstanceInformationList[0].InstanceId' --output text)"
+          [ -n "$ID" ] && [ "$ID" != None ] || { echo "::error::The server is not online in Systems Manager"; exit 1; }
+          echo "MANAGED_INSTANCE_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: Build, push and start the release
+        run: scripts/ci-deploy.sh "$RELEASE"
+
+      - name: Smoke test the public site
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 5 "https://$PUBLIC_HOST/" > /dev/null

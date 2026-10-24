@@ -1,0 +1,12 @@
+region                = "us-east-1"
+domain_name           = "bionexus.example.com"
+cognito_domain_prefix = "bionexus-pilot-CHANGE-ME"
+operator_cidrs        = ["203.0.113.10/32"]
+bundle_id             = "REPLACE_WITH_BUNDLE_ID_FROM_aws_lightsail_get-bundles"
+github_repo          = "your-github-user/your-repo"
+budget_alert_email    = "ops@example.com"
+monthly_budget_usd    = 20   # total AWS spend you accept per month
+run_budget_usd        = 0.5  # AI-model cap per investigation
+tenant_monthly_usd    = 5    # AI-model cap per organisation per month
+default_model         = "REPLACE_WITH_VERIFIED_MODEL_ID"
+models_json           = "{\"models\": []}" # fill from config/models.example.json after verifying prices

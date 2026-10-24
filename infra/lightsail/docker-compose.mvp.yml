@@ -1,0 +1,17 @@
+# MVP override for the 2 GB Lightsail plan (about US$12/month). Use together with the main file:
+#   docker compose -f docker-compose.yml -f docker-compose.mvp.yml up -d
+# Measured (Linux containers): API/worker process peak about 130 MB, web about 80 MB. These limits leave
+# room for PostgreSQL and the OS, and the host adds 1 GB of swap (see infra/terraform/cloud-init.sh).
+services:
+  proxy:
+    mem_limit: 64m
+  web:
+    mem_limit: 256m
+  api:
+    mem_limit: 384m
+  worker:
+    mem_limit: 384m
+  db:
+    mem_limit: 640m
+    shm_size: 128m
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=30", "-c", "work_mem=8MB", "-c", "maintenance_work_mem=64MB"]

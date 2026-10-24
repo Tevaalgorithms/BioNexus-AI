@@ -1,0 +1,57 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "PMC-1",
+      "study_family": "FAM-E",
+      "target": "NOD2",
+      "finding": "FIXTURE: functional study of NOD2 sensing (passage not in abstract)",
+      "stance": "supports",
+      "species": "human",
+      "context": "cell line",
+      "passage": "",
+      "available_on": "2019-05-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "PMC-2",
+      "study_family": "FAM-F",
+      "target": "IL23R",
+      "finding": "FIXTURE: study reporting no IL23R effect in its cohort",
+      "stance": "opposes",
+      "species": "human",
+      "context": "small cohort",
+      "passage": "Synthetic fixture passage: no association observed.",
+      "available_on": "2018-03-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "PMC-3",
+      "study_family": "FAM-G",
+      "target": "NOD2",
+      "finding": "FIXTURE: paywalled article without redistribution rights",
+      "stance": "supports",
+      "species": "human",
+      "context": "review",
+      "passage": "Synthetic fixture passage.",
+      "available_on": "2019-01-01",
+      "license_ok": false
+    },
+    {
+      "source_id": "PMC-4",
+      "study_family": "FAM-K",
+      "target": "IL23R",
+      "finding": "FIXTURE: claim whose supporting passage cannot be found",
+      "stance": "supports",
+      "species": "human",
+      "context": "cohort",
+      "passage": "",
+      "available_on": "2020-02-01",
+      "license_ok": true
+    }
+  ],
+  "full_text_passages": {
+    "PMC-1": "Synthetic fixture passage: NOD2 loss impairs bacterial sensing in cells."
+  }
+}

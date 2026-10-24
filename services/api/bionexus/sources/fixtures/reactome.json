@@ -1,0 +1,30 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "RX-1",
+      "study_family": "FAM-H",
+      "target": "NOD2",
+      "finding": "FIXTURE: curated annotation, NOD2 in innate immune sensing",
+      "stance": "supports",
+      "species": "human",
+      "context": "curated pathway annotation",
+      "passage": "Synthetic fixture passage: pathway annotation, not an experiment.",
+      "available_on": "2022-01-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "RX-2",
+      "study_family": "FAM-L",
+      "target": "IL23R",
+      "finding": "FIXTURE: curated annotation, IL-23 signalling",
+      "stance": "supports",
+      "species": "human",
+      "context": "curated pathway annotation",
+      "passage": "Synthetic fixture passage: pathway annotation, not an experiment.",
+      "available_on": "2022-01-01",
+      "license_ok": true
+    }
+  ]
+}

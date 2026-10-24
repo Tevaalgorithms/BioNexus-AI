@@ -1,0 +1,31 @@
+[project]
+name = "bionexus"
+version = "0.1.0"
+description = "BioNexus AI: evidence-grounded multi-agent biomedical research backend"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.7", "fastapi>=0.110", "uvicorn>=0.30", "httpx>=0.27", "psycopg[binary,pool]>=3.2",
+  "PyJWT[crypto]>=2.8", "python-docx>=1.1", "boto3>=1.34",
+  "langgraph>=1.0", "langgraph-checkpoint-postgres>=3.0", "langchain-core>=1.0",
+  "langchain-anthropic>=1.0", "langchain-openai>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5", "moto[ssm]>=5", "radon>=6", "bandit>=1.7", "pip-audit>=2.7"]
+
+[tool.setuptools.package-data]
+bionexus = ["sources/fixtures/*.json", "storage/migrations/*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C90", "UP", "SIM"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 5

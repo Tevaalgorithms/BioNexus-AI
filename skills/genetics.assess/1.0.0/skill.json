@@ -1,0 +1,9 @@
+{
+  "skill_id": "genetics.assess",
+  "version": "1.0.0",
+  "owner": "genetics",
+  "approved": true,
+  "instructions": "Assess target-disease genetic associations. Keep ancestry and direction of effect. Association is not function.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}

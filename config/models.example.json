@@ -1,0 +1,9 @@
+{
+  "_note": "EXAMPLE ONLY. Verify model IDs, prices, retention policy and regional availability with your provider account before use, then set price_verified_on. Prices below are placeholders (0) and must not be used for budgeting.",
+  "models": [
+    {"model_id": "claude-haiku-5-5", "provider": "anthropic", "supports_structured_output": true,
+     "api_key_secret": "ANTHROPIC_API_KEY", "input_usd_per_million": 0, "output_usd_per_million": 0},
+    {"model_id": "claude-sonnet-5-5", "provider": "anthropic", "supports_structured_output": true,
+     "api_key_secret": "ANTHROPIC_API_KEY", "input_usd_per_million": 0, "output_usd_per_million": 0}
+  ]
+}

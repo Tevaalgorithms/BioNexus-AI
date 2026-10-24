@@ -1,0 +1,30 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "OT-1",
+      "study_family": "FAM-A",
+      "target": "NOD2",
+      "finding": "FIXTURE: genetic association of NOD2 with the disease",
+      "stance": "supports",
+      "species": "human",
+      "context": "European ancestry cohort",
+      "passage": "Synthetic fixture passage: NOD2 variants associate with disease risk.",
+      "available_on": "2020-01-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "OT-2",
+      "study_family": "FAM-B",
+      "target": "IL23R",
+      "finding": "FIXTURE: genetic association of IL23R with the disease",
+      "stance": "supports",
+      "species": "human",
+      "context": "European ancestry cohort",
+      "passage": "Synthetic fixture passage: IL23R variants associate with disease risk.",
+      "available_on": "2020-01-01",
+      "license_ok": true
+    }
+  ]
+}

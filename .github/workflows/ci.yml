@@ -1,0 +1,60 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:   # the deploy workflow runs the same checks first
+
+permissions: { contents: read }
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: { POSTGRES_HOST_AUTH_METHOD: trust, POSTGRES_DB: bionexus }  # throwaway CI database
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    defaults: { run: { working-directory: services/api } }
+    env:
+      BIONEXUS_TEST_DSN: postgresql://postgres@localhost:55432/bionexus
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: ruff check . && ruff format --check .
+      - run: pytest -q          # unit + PostgreSQL contract tests; no paid model calls (REPO-07)
+      - run: python -m bionexus.evals.run
+      - run: pip install bandit pip-audit && bandit -q -r bionexus -ll && pip-audit
+
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck && npm test && npm run build
+      - run: npm audit --omit=dev --audit-level=high
+
+  secrets-and-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infra/terraform init -backend=false && terraform -chdir=infra/terraform validate
+
+  images:
+    needs: [backend, web, secrets-and-infra]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f services/api/Dockerfile -t bionexus-api:${{ github.sha }} .
+      - run: docker build -t bionexus-web:${{ github.sha }} apps/web

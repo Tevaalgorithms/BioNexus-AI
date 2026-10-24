@@ -1,0 +1,18 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "MON-1",
+      "study_family": "FAM-I",
+      "target": "IL23R",
+      "finding": "FIXTURE: mouse model phenotype",
+      "stance": "supports",
+      "species": "mouse",
+      "context": "mouse model",
+      "passage": "Synthetic fixture passage: knockout phenotype in mouse.",
+      "available_on": "2021-01-01",
+      "license_ok": true
+    }
+  ]
+}

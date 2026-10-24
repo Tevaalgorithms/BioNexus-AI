@@ -1,0 +1,94 @@
+# One Lightsail host: proxy + web/BFF + API + worker + PostgreSQL (pgvector).
+# Configuration is NOT passed here. Containers start with APP_ENV=production and read every setting
+# and secret from AWS SSM Parameter Store, using the one bootstrap AWS credential mounted below.
+name: bionexus
+
+x-app-env: &app-env
+  APP_ENV: production
+  SSM_PATH_PREFIX: ${SSM_PATH_PREFIX:-/bionexus/prod/}
+  AWS_REGION: ${AWS_REGION}
+  AWS_SHARED_CREDENTIALS_FILE: /run/secrets/aws_credentials
+
+x-hardening: &hardening
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+services:
+  proxy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment: { PUBLIC_HOST: "${PUBLIC_HOST}" }
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [web]
+    logging: &log { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+
+  web:
+    image: bionexus-web:${RELEASE:-local}
+    restart: unless-stopped
+    environment: *app-env
+    secrets: [aws_credentials]
+    <<: *hardening
+    mem_limit: 512m
+    logging: *log
+
+  api:
+    image: bionexus-api:${RELEASE:-local}
+    restart: unless-stopped
+    environment: *app-env
+    secrets: [aws_credentials]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    <<: *hardening
+    mem_limit: 1g
+    logging: *log
+
+  worker:
+    image: bionexus-api:${RELEASE:-local}
+    restart: unless-stopped
+    command: ["python", "-m", "bionexus.worker_main"]
+    environment: *app-env
+    secrets: [aws_credentials]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import time,sys;sys.exit(0 if time.time()-float(open('/tmp/bionexus-worker-heartbeat').read())<60 else 1)"]
+      interval: 30s
+    <<: *hardening
+    mem_limit: 1536m
+    logging: *log
+
+  migrate:
+    image: bionexus-api:${RELEASE:-local}
+    command: ["python", "-m", "bionexus.storage.migrate"]
+    environment: *app-env
+    secrets: [aws_credentials]
+    depends_on: { db: { condition: service_healthy } }
+    restart: "no"
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bionexus
+      POSTGRES_DB: bionexus
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password   # same value as the SSM parameter
+    secrets: [postgres_password]
+    volumes: [pgdata:/var/lib/postgresql/data]   # persistent: survives container recreation
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bionexus"]
+      interval: 10s
+    shm_size: 256m
+    mem_limit: 2g
+    logging: *log
+    # No ports published: PostgreSQL is reachable only on the compose network.
+
+volumes:
+  pgdata:
+  caddy_data:
+
+secrets:
+  aws_credentials: { file: ./secrets/aws_credentials }     # IAM user limited to read /bionexus/prod/*
+  postgres_password: { file: ./secrets/postgres_password } # DB bootstrap; copy of SSM POSTGRES_PASSWORD

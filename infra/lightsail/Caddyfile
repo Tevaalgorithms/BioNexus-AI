@@ -1,0 +1,12 @@
+{$PUBLIC_HOST} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+	# Only the web/BFF is public. The API is reachable on the private compose network only.
+	reverse_proxy web:3000 {
+		flush_interval -1   # lets server-sent events stream through
+	}
+}

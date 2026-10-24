@@ -1,0 +1,9 @@
+{
+  "skill_id": "report.synthesize",
+  "version": "1.0.0",
+  "owner": "synthesizer",
+  "approved": true,
+  "instructions": "Write a short summary using only accepted evidence. No causal or treatment claims.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}

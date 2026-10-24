@@ -1,0 +1,9 @@
+{
+  "skill_id": "mechanism.context",
+  "version": "1.0.0",
+  "owner": "pathways",
+  "approved": true,
+  "instructions": "Provide pathway and phenotype context. A curated annotation is not an experimentally shown mechanism.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}

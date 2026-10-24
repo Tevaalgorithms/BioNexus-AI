@@ -1,0 +1,42 @@
+{
+  "_note": "SYNTHETIC FIXTURE DATA for offline development. Not real study results.",
+  "disease": "Crohn's disease",
+  "records": [
+    {
+      "source_id": "GWAS-1",
+      "study_family": "FAM-A",
+      "target": "NOD2",
+      "finding": "FIXTURE: same study as OT-1 seen via the GWAS catalogue",
+      "stance": "supports",
+      "species": "human",
+      "context": "European ancestry cohort",
+      "passage": "Synthetic fixture passage: replicated NOD2 locus.",
+      "available_on": "2020-01-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "GWAS-2",
+      "study_family": "FAM-C",
+      "target": "IL23R",
+      "finding": "FIXTURE: independent IL23R locus report",
+      "stance": "supports",
+      "species": "human",
+      "context": "East Asian ancestry cohort",
+      "passage": "Synthetic fixture passage: IL23R locus in a second ancestry.",
+      "available_on": "2021-06-01",
+      "license_ok": true
+    },
+    {
+      "source_id": "GWAS-3",
+      "study_family": "FAM-D",
+      "target": "IL23R",
+      "finding": "FIXTURE: study published after the evidence cutoff",
+      "stance": "supports",
+      "species": "human",
+      "context": "mixed ancestry",
+      "passage": "Synthetic fixture passage: late study.",
+      "available_on": "2027-01-01",
+      "license_ok": true
+    }
+  ]
+}

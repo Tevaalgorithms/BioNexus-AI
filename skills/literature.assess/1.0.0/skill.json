@@ -1,0 +1,9 @@
+{
+  "skill_id": "literature.assess",
+  "version": "1.0.0",
+  "owner": "literature",
+  "approved": true,
+  "instructions": "Report only findings supported by a retrieved passage. State when a passage is unavailable.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "No eligible evidence is available."
+}
