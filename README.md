@@ -130,7 +130,7 @@ flowchart TB
     CRIT -. "evidence.challenge: a passage or a second look<br/>evidence.request: more evidence<br/>repair loop, at most 2 rounds" .-> LIT
     CRIT -. "evidence.request" .-> GEN
     CRIT -. "evidence.request" .-> CLI
-    CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
+    CRIT --> RANK["Retrieve and rank<br/>full text + word-hash vectors"]
     RANK --> SYN["Synthesizer<br/>AI reviewer<br/>claims from accepted evidence only"]
     SYN --> VER["Verifier<br/>AI reviewer<br/>rebuilds claims by code<br/>checks each summary sentence"]
     VER --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
@@ -260,7 +260,7 @@ The key covers the organisation, the model and fallback, the output cap, the tem
 | --- | --- |
 | Backend | Python 3.12, FastAPI, Pydantic, psycopg 3 |
 | Workflow and models | LangGraph (graph, checkpoints, human review), LangChain chat models behind our own port |
-| Data and search | PostgreSQL 16 with pgvector, full-text plus vector search fused with Reciprocal Rank Fusion; an in-memory store for tests and the offline demo |
+| Data and search | PostgreSQL 16 with pgvector. Full-text search plus vector search, fused with Reciprocal Rank Fusion. The vectors are word-count hashes, not semantic embeddings yet (see [limits](docs/limits.md)). An in-memory store serves tests and the offline demo |
 | Auth | Amazon Cognito (invite-only, password sign-in, no MFA yet); roles and projects live in the database |
 | Frontend | Next.js 16, React 19, TypeScript, plain CSS with light and dark themes |
 | Infrastructure | Terraform, Docker Compose with a Caddy TLS proxy, one Lightsail host |
