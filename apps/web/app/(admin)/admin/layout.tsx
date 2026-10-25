@@ -4,7 +4,7 @@ import { currentSession } from "@/lib/session";
 
 const ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: "home" },
-  { href: "/admin/agents", label: "Agents & models", icon: "cpu" },
+  { href: "/admin/agents", label: "Team & models", icon: "cpu" },
   { href: "/admin/models", label: "Model registry", icon: "sliders" },
   { href: "/admin/skills", label: "Skills", icon: "book" },
   { href: "/admin/sources", label: "Source health", icon: "server" },

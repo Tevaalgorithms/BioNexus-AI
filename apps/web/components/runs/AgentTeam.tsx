@@ -16,7 +16,7 @@ export default function AgentTeam({ detail, report }: { detail: RunDetail; repor
           <article className="card agent" key={agent.id} aria-labelledby={`agent-${agent.id}`}>
             <div className="ico"><Icon name={agent.icon} size={22} /></div>
             <div>
-              <h3 id={`agent-${agent.id}`}>{agent.name}</h3>
+              <h3 id={`agent-${agent.id}`}>{agent.name} <span className="badge info">{agent.kind}</span></h3>
               <p>{agent.role}</p>
               <div className="meta">
                 <span>Sources: {agent.sources.length ? agent.sources.map((s) => SOURCE_LABELS[s]).join(", ") : agent.sourcesText}</span>

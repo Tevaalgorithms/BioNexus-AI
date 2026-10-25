@@ -13,7 +13,7 @@ import { useRunEvents } from "../../hooks/useRunEvents";
 import { statusSentence } from "@/lib/explain";
 import type { Report, RunDetail } from "@/lib/types";
 
-const TABS = ["Progress", "Evidence", "Report", "Agent team", "Limitations & sources", "Reproducibility"] as const;
+const TABS = ["Progress", "Evidence", "Report", "Team", "Limitations & sources", "Reproducibility"] as const;
 const ACTIVE = new Set(["queued", "running"]);
 const NO_REPORT = new Set(["queued", "running", "failed", "cancelled", "incomplete"]);
 
@@ -54,7 +54,7 @@ export default function RunView({ runId }: { runId: string }) {
       <div className="grid cols-4" style={{ marginBottom: 18 }}>
         <Kpi icon="doc" value={d.evidence.filter((e) => e.accepted).length} label="Accepted evidence items" />
         <Kpi icon="alert" value={d.issues.length} label="Open issues" />
-        <Kpi icon="link" value={d.timeline.filter((m) => m.type !== "task.result").length} label="Agent handoffs" />
+        <Kpi icon="link" value={d.timeline.filter((m) => m.type !== "task.result").length} label="Handoffs" />
         <Kpi icon="coin" value={`$${d.cost_usd.toFixed(4)}`} label="Model cost" />
       </div>
 
@@ -68,7 +68,7 @@ export default function RunView({ runId }: { runId: string }) {
         {tab === "Progress" && (<><div className="card"><ActivityFeed events={events} mode={mode} /></div><div className="card"><Timeline detail={d} /></div></>)}
         {tab === "Evidence" && (d.evidence.length ? <EvidenceTab detail={d} canRevise={d.status === "waiting_for_review"} onChanged={refresh} /> : <Empty>No evidence has been retrieved yet.</Empty>)}
         {tab === "Report" && (report.data ? <ReportTab runId={runId} report={report.data} canApprove={d.status === "waiting_for_review"} onChanged={refresh} /> : report.error ? <ErrorNotice message={report.error} onRetry={report.reload} /> : <Empty>The report appears once evidence gathering finishes.</Empty>)}
-        {tab === "Agent team" && <AgentTeam detail={d} report={report.data} />}
+        {tab === "Team" && <AgentTeam detail={d} report={report.data} />}
         {tab === "Limitations & sources" && <Limitations d={d} />}
         {tab === "Reproducibility" && <Reproducibility report={report.data} d={d} />}
       </div>

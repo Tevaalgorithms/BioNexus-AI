@@ -4,7 +4,7 @@
 const hex = (cx: number, cy: number, r: number) =>
   Array.from({ length: 6 }, (_, i) => `${cx + r * Math.cos((Math.PI / 3) * i - Math.PI / 6)},${cy + r * Math.sin((Math.PI / 3) * i - Math.PI / 6)}`).join(" ");
 
-export function HeroNetwork({ title = "Evidence from four kinds of source flows to an agent team, then to a report a scientist approves" }: { title?: string }) {
+export function HeroNetwork({ title = "Evidence from four kinds of source flows to a team of specialists and AI reviewers, then to a report a scientist approves" }: { title?: string }) {
   const sources = [["Genetics", 54, "dna"], ["Literature", 128, "book"], ["Pathways", 202, "path"], ["Clinical", 276, "flask"]] as const;
   return (
     <svg viewBox="0 0 560 360" role="img" aria-label={title} style={{ width: "100%", height: "auto" }}>
@@ -24,7 +24,7 @@ export function HeroNetwork({ title = "Evidence from four kinds of source flows 
       ))}
       <polygon points={hex(262, 180, 44)} fill="var(--brand)" />
       <polygon points={hex(262, 180, 56)} fill="none" stroke="var(--brand)" strokeOpacity=".35" strokeWidth="2" />
-      <text x="262" y="177" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--on-brand)">Agent</text>
+      <text x="262" y="177" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--on-brand)">Evidence</text>
       <text x="262" y="193" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--on-brand)">team</text>
       <path d="M322 180 H382" stroke="var(--brand)" strokeWidth="2.500" markerEnd="url(#hn-a)" />
       <g transform="translate(386 112)">
@@ -65,18 +65,30 @@ export function EmptyIllustration({ label = "Nothing here yet" }: { label?: stri
   );
 }
 
+/** A small mark on a role that uses an AI model. */
+function AiBadge({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x} y={y} width="24" height="14" rx="3" fill="var(--brand)" />
+      <text x={x + 12} y={y + 10.500} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--on-brand)">AI</text>
+    </g>
+  );
+}
+
 /** The team diagram used in "How it works": who does what, left to right. */
 export function TeamDiagram() {
   const specialists = [["Genetics", 52], ["Pathways", 130], ["Literature", 208], ["Clinical", 286]] as const;
   const head = (t: string, x: number) => (
     <text key={t} x={x} y="16" textAnchor="middle" fontSize="12" fontWeight="700" letterSpacing=".05em" fill="var(--muted)">{t.toUpperCase()}</text>
   );
+  /** The four AI reviewers. Each is a model-assisted role, so each carries the AI mark. */
   const box = (x: number, y: number, title: string, a: string, b: string, tone: "info" | "warn" | "ok" | "brand") => {
     const fill = tone === "brand" ? "var(--brand-soft)" : `var(--${tone}-bg)`;
     const edge = tone === "brand" ? "var(--brand)" : `var(--${tone})`;
     return (
       <g>
         <rect x={x} y={y} width="150" height="76" rx="8" fill={fill} stroke={edge} />
+        <AiBadge x={x + 120} y={y + 6} />
         <text x={x + 75} y={y + 28} textAnchor="middle" fontSize="15" fontWeight="700" fill={edge}>{title}</text>
         <text x={x + 75} y={y + 47} textAnchor="middle" fontSize="11" fill="var(--text)">{a}</text>
         <text x={x + 75} y={y + 62} textAnchor="middle" fontSize="11" fill="var(--text)">{b}</text>
@@ -85,7 +97,7 @@ export function TeamDiagram() {
   };
   return (
     <svg viewBox="0 0 900 340" role="img" style={{ width: "100%", maxWidth: 900, height: "auto", display: "block", margin: "0 auto" }}
-      aria-label="Five steps. One: the supervisor plans and starts the genetics, literature and clinical specialists. Two: they gather evidence; genetics can ask pathways for context, but only for genes with genetic support. Three: the planner reviews coverage and the critic reviews conflicts; either can ask a specialist to search again, and the critic can ask literature for a passage or a second look. Four: the synthesizer writes cited findings and the verifier checks every claim and summary sentence. Five: a scientist reviews and approves.">
+      aria-label="Five steps. One: the supervisor plans and starts the genetics, literature and clinical specialists. Two: they gather evidence; genetics can ask pathways for context, but only for genes with genetic support. Three: the planner reviews coverage and the critic reviews conflicts, both AI reviewers; either can ask a specialist to search again, and the critic can ask literature for a passage or a second look. Four: the synthesizer writes cited findings and the verifier checks every claim and summary sentence. Five: a scientist reviews and approves.">
       <defs>
         <marker id="td-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--muted)" /></marker>
         <marker id="td-arrow-b" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--brand-2)" /></marker>
@@ -106,6 +118,7 @@ export function TeamDiagram() {
         <g key={n}>
           <rect x="170" y={cy - 20} width="150" height="40" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" strokeOpacity=".45" strokeDasharray={n === "Pathways" ? "4 3" : undefined} />
           <text x="245" y={cy + 5} textAnchor="middle" fontSize="14" fontWeight="650" fill="var(--brand)">{n}</text>
+          {n === "Literature" && <AiBadge x={292} y={cy - 17} />}
         </g>
       ))}
       {/* genetics asks pathways */}
@@ -141,7 +154,9 @@ export function TeamDiagram() {
       <path d="M10 322 H40" stroke="var(--muted)" strokeWidth="2" markerEnd="url(#td-arrow)" />
       <text x="48" y="326" fontSize="11" fill="var(--muted)">evidence and results move on</text>
       <path d="M270 322 H300" stroke="var(--brand-2)" strokeWidth="2.500" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
-      <text x="308" y="326" fontSize="11" fill="var(--muted)">one agent asks another and gets an answer</text>
+      <text x="308" y="326" fontSize="11" fill="var(--muted)">one team member asks another and gets an answer</text>
+      <AiBadge x={640} y={315} />
+      <text x="670" y="326" fontSize="11" fill="var(--muted)">uses an AI model</text>
     </svg>
   );
 }

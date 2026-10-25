@@ -123,9 +123,9 @@ export default function NewAnalysisForm() {
         <aside className="card" aria-labelledby="next-h">
           <h2 id="next-h">What happens next</h2>
           <ol style={{ paddingLeft: 20 }}>
-            <li><strong>Gather:</strong> genetics, literature and clinical agents search approved sources in parallel. Genetics can ask the pathways agent for context.</li>
+            <li><strong>Gather:</strong> genetics, literature and clinical specialists search approved sources in parallel. Genetics can ask the pathways specialist for context.</li>
             <li><strong>Review coverage:</strong> a planner checks what was found and can ask for another search under a different name.</li>
-            <li><strong>Challenge:</strong> a critic flags contradictions and missing support. It asks the literature agent for missing passages and a second look at conflicting directions, and explains conflicts.</li>
+            <li><strong>Challenge:</strong> a critic flags contradictions and missing support. It asks the literature specialist for missing passages and a second look at conflicting directions, and explains conflicts.</li>
             <li><strong>Draft and verify:</strong> findings are written using only accepted evidence, then a verifier checks every claim and summary sentence. Anything unsupported is withheld and listed.</li>
             <li><strong>You decide:</strong> review, exclude anything you distrust, and approve a version.</li>
           </ol>

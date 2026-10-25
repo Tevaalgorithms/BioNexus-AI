@@ -1,6 +1,6 @@
 # BioNexus API (`services/api`)
 
-The Python backend: FastAPI routes, the nine agents, the LangGraph investigation workflow, the model
+The Python backend: FastAPI routes, the nine roles (the code calls each an agent), the LangGraph investigation workflow, the model
 gateway and PostgreSQL storage. The web app (`apps/web`) is the only client; it talks to this service
 over HTTP and shares no code with it.
 
@@ -20,7 +20,7 @@ without HTTP.
 | Folder | What it holds |
 | --- | --- |
 | `contracts/` | Typed data models (evidence, messages, projects, errors). No logic and no I/O. |
-| `agents/` | One file per agent, plus `base.py` (shared behaviour) and `skills.py`. |
+| `agents/` | One file per role, plus `base.py` (shared behaviour) and `skills.py`. |
 | `workflow/` | The LangGraph graph (`graph.py`), step logic (`nodes.py`), dispatcher, budget, events. |
 | `llm/` | The model gateway, the approved-model catalogue, configuration releases, LangChain adapter. |
 | `sources/` | Guarded HTTP and `live/` (one module per public data source); `fixtures/` is synthetic sample data. |

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Tevaalgorithms/BioNexus-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Tevaalgorithms/BioNexus-AI/actions/workflows/ci.yml)
 
-BioNexus is an evidence-review assistant for drug-target research. A scientist names a disease and up to five genes. A team of specialist AI agents gathers evidence from public genetics, literature, pathway and clinical-trial sources, and a critic flags conflicts and gaps. The scientist **reviews, excludes what they distrust, and approves one exact report version**. Every claim cites the evidence behind it, every excluded record is listed with a reason, and the models and data versions used are recorded.
+BioNexus is an evidence-review assistant for drug-target research. A scientist names a disease and up to five genes. A team of source specialists gathers evidence from public genetics, literature, pathway and clinical-trial sources, and AI reviewers plan further searches, flag and explain conflicts, check the findings and write the draft. The scientist **reviews, excludes what they distrust, and approves one exact report version**. Every claim cites the evidence behind it, every excluded record is listed with a reason, and the models and data versions used are recorded.
 
 **Status: MVP.** It runs on one AWS Lightsail host with invite-only Cognito sign-in, and CI runs on every push. **Not done yet:** a verified live AI-model run end to end, the pilot with a locked evaluation set, scheduled source refresh, raw-response capture, MFA.
 **Demo data:** a small **synthetic** Crohn's disease sample is built in and is the default. Real public databases are used in live mode. Nothing here is a clinical tool.
@@ -23,13 +23,13 @@ In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 secon
 ## What it does
 
 - **Investigations** are durable: they survive a worker restart and resume at the exact step.
-- **Nine agents, one job each:** a supervisor, a planner, genetics, literature, pathways and clinical specialists, a critic, a verifier and a synthesizer. Five use an AI model where a judgement is needed. They talk only through a recorded, allowlisted message router.
+- **Nine roles, one job each:** a coordinator (the supervisor), four source specialists (genetics, literature, pathways, clinical) and four AI reviewers (planner, critic, verifier, synthesizer). Five roles use an AI model where a judgement is needed. They talk only through a recorded, allowlisted message router.
 - **Six live sources:** Open Targets, GWAS Catalog, Europe PMC, Reactome, Monarch and ClinicalTrials.gov, reached through a guarded HTTP client (host allowlist, HTTPS only, timeouts, bounded retries, size cap). These are BioNexus adapters, not MCP servers.
 - **Evidence you can check:** only licensed evidence dated before your cutoff and backed by a passage can be cited.
 - **A human gate:** the run pauses for review. A scientist can exclude evidence, regenerate the draft, and approve one version by its content hash.
 - **Reports** in Markdown, Word and a JSON manifest with the configuration release, skill hashes and every model call.
 - **Project spaces:** a private workspace per disease or study. Reviewed evidence is reused only inside the project where it was approved.
-- **Admin console:** add or retire AI models at runtime, change which model each agent uses (validate, evaluate, activate, roll back), usage and cost, source health, skills, an audit log and an emergency stop.
+- **Admin console:** add or retire AI models at runtime, change which model each role uses (validate, evaluate, activate, roll back), usage and cost, source health, skills, an audit log and an emergency stop.
 - **Spending caps:** per-run and per-organisation model budgets, reserved before each call.
 - **Configuration:** a git-ignored `.env` locally, AWS SSM Parameter Store in production. No secret is in the code.
 
@@ -56,7 +56,7 @@ graph TB
         G1["scope → recall memory → specialists"] --> G2["critique (up to 2 rounds)"] --> G3["retrieve → synthesize → finalize"] --> G4["await_review (human interrupt) → complete"]
     end
 
-    subgraph AGENTS["Agent team (own message router)"]
+    subgraph AGENTS["The team (own message router)"]
         SUP["Supervisor"]
         SPEC["Genetics · Literature · Pathways · Clinical"]
         PLAN["Planner"]
@@ -98,27 +98,37 @@ graph TB
 
 More detail, with sequence diagrams of sign-in, a run and the review step, and a map from each step to its code, is in [`docs/architecture.md`](docs/architecture.md).
 
-## Agents and how they talk
+## The team and how it talks
 
-### The agents
+### The roles
 
-Nine agents, each with one job. Five use an AI model where a judgement is needed; four are plain code.
+Nine roles, each with one job. Five use an AI model where a judgement is needed; four are plain code.
 
-| Agent | Job | What it uses a model for |
+**A note on the word "agent".** In the code every role is called an agent, and this README sometimes uses the word as shorthand. But the roles are not alike, so they are grouped by what they actually do:
+
+| Kind | Roles | What it means |
 | --- | --- | --- |
-| **Supervisor** | Plans the run. It starts genetics, literature and clinical, then hands the run to the planner, the critic and the verifier at the right steps. Which agents run is never left to a model. | Nothing |
-| **Planner** | After the first pass it reads a counts-only table (records per gene and source) and may ask genetics, literature or clinical to search again under another disease name, gene alias or qualifier, at most 4 requests. It never sees the evidence text and cannot add or judge evidence. | Proposing the extra searches |
-| **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. Answers requests for more evidence. | Nothing |
-| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence. | Reading the direction of papers that state none, and second looks |
-| **Pathways** | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Nothing |
-| **Clinical** | Registered trials from ClinicalTrials.gov. Answers requests for more evidence. | Nothing |
-| **Critic** | Plain code finds three kinds of problem: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. A model then reads each conflict and says whether it looks real or could be explained (for example by ancestry or assay), and may ask a specialist for more evidence. | Explaining conflicts, and asking for more evidence |
-| **Verifier** | Checks the findings before the report is built. Plain code rebuilds each claim from the evidence it cites. A model compares each sentence of the summary with the claims. Anything unsupported is withheld and listed; anything that could not be checked is kept and marked. | Comparing summary sentences with the claims |
-| **Synthesizer** | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | The short summary narrative |
+| **Coordinator** | Supervisor | Routes the work and starts each step. It makes no judgement about the evidence. |
+| **Source specialist** | Genetics, Literature, Pathways, Clinical | Searches one family of public databases and returns evidence as it finds it. Only Literature uses a model, to read a paper's direction. |
+| **AI reviewer** | Planner, Critic, Verifier, Synthesizer | A model makes a judgement here: what else to search, whether a conflict is real, whether a sentence is supported, how to summarise. |
 
-**Which model?** It is not fixed in the code. Each agent is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per agent in **Agents & models**, so the synthesizer can use a different model from the planner. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only the five AI-assisted agents need a binding; the others keep one because every release lists all nine, and the admin console shows them as "not used". A release saved before an upgrade gains the new agents automatically, as a new release, and its history is kept.
+Strictly, "agent" fits the AI reviewers best. Everything below says which kind each role is.
 
-Each agent has an approved, versioned, hashed instruction file in `skills/` (the critic has two: one to find problems, one to explain conflicts). The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+| Role | Kind | Job | What it uses a model for |
+| --- | --- | --- | --- |
+| **Supervisor** | Coordinator | Plans the run. It starts genetics, literature and clinical, then hands the run to the planner, the critic and the verifier at the right steps. Which agents run is never left to a model. | Nothing |
+| **Planner** | AI reviewer | After the first pass it reads a counts-only table (records per gene and source) and may ask genetics, literature or clinical to search again under another disease name, gene alias or qualifier, at most 4 requests. It never sees the evidence text and cannot add or judge evidence. | Proposing the extra searches |
+| **Genetics** | Source specialist | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. Answers requests for more evidence. | Nothing |
+| **Literature** | Source specialist | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence. | Reading the direction of papers that state none, and second looks |
+| **Pathways** | Source specialist | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Nothing |
+| **Clinical** | Source specialist | Registered trials from ClinicalTrials.gov. Answers requests for more evidence. | Nothing |
+| **Critic** | AI reviewer | Plain code finds three kinds of problem: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. A model then reads each conflict and says whether it looks real or could be explained (for example by ancestry or assay), and may ask a specialist for more evidence. | Explaining conflicts, and asking for more evidence |
+| **Verifier** | AI reviewer | Checks the findings before the report is built. Plain code rebuilds each claim from the evidence it cites. A model compares each sentence of the summary with the claims. Anything unsupported is withheld and listed; anything that could not be checked is kept and marked. | Comparing summary sentences with the claims |
+| **Synthesizer** | AI reviewer | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | The short summary narrative |
+
+**Which model?** It is not fixed in the code. Each AI-assisted role is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per role in **Team & models**, so the synthesizer can use a different model from the planner. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only the five AI-assisted roles need a binding; the others keep one because every release lists all nine, and the admin console shows them as "not used". A release saved before an upgrade gains the new agents automatically, as a new release, and its history is kept.
+
+Each role has an approved, versioned, hashed instruction file in `skills/` (the critic has two: one to find problems, one to explain conflicts). The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
 
 **Model text is untrusted.** A reply is read defensively: a bad answer is treated as no answer. A verdict outside the allowed ones becomes "unclear", an explanation with causal or treatment wording is dropped, and a requested search is used only if it passes the checks below. If no model is available, the step is skipped, not failed, and the report says what was and was not checked.
 
@@ -151,9 +161,9 @@ flowchart TB
 
 Up to two specialists run at the same time. The workflow calls the synthesizer directly after ranking. The supervisor starts the planner, the critic and the verifier by sending each a task at its step, so those handoffs are recorded like any other.
 
-### Agent-to-agent communication
+### Communication between team members
 
-Agents never call each other directly. An agent returns messages, and the dispatcher hands every one to a **router** that checks it before delivery. This is BioNexus's own internal protocol, not the external Agent2Agent standard.
+Team members never call each other directly. A role returns messages, and the dispatcher hands every one to a **router** that checks it before delivery. This is BioNexus's own internal protocol, not the external Agent2Agent standard.
 
 ```mermaid
 sequenceDiagram
@@ -184,7 +194,7 @@ sequenceDiagram
     V-->>S: task.result (what was withheld)
 ```
 
-An agent replies to the message it was given as soon as it has handled it, so each reply comes before the requests that agent sends in the same turn. The order above is the order recorded in a real run.
+A role replies to the message it was given as soon as it has handled it, so each reply comes before the requests that role sends in the same turn. The order above is the order recorded in a real run.
 
 **The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are five types: `task.request`, `task.result`, `evidence.challenge`, `evidence.request` and `task.failed`. The router accepts `task.failed` as a reply, but no agent sends it today: a failing step ends the run honestly instead (incomplete or failed).
 
@@ -194,7 +204,7 @@ An agent replies to the message it was given as soon as it has handled it, so ea
 
 | Rule | Detail |
 | --- | --- |
-| Allowlist | Supervisor may message every other agent. Genetics may message pathways. The critic and the planner may message the four specialists. Anything else is rejected. |
+| Allowlist | Supervisor may message every other role. Genetics may message pathways. The critic and the planner may message the four specialists. Anything else is rejected. |
 | Replies | A `task.result` or `task.failed` is accepted only as an answer to a message that was addressed to the sender. |
 | Depth cap | A chain of handoffs may be at most 3 deep. |
 | Volume cap | At most 60 messages per run. The planner and the critic check the room left before sending and keep some in reserve for the verifier, so the cap is not expected to end a run. |
@@ -202,7 +212,7 @@ An agent replies to the message it was given as soon as it has handled it, so ea
 
 The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists, the planner, the critic and the verifier; genetics to pathways; the planner and the critic to genetics, literature and clinical; and the critic to literature.
 
-**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for, or for a request what to search for), so a reviewer can see who asked whom and why. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
+**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for, or for a request what to search for), so a reviewer can see who asked whom and why. Team members share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
 
 ## Agent optimizations
 
@@ -210,7 +220,7 @@ How an investigation stays cheap and fast. Every lever is a named constant in on
 
 | # | What we did | Where |
 | --- | --- | --- |
-| **AO-1** | **Only agents that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `agents/base.py`, `agents/critic.py` |
+| **AO-1** | **Only roles that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `agents/base.py`, `agents/critic.py` |
 | **AO-2** | **Small prompts.** A passage is cut to 300 characters. Only a second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
 | **AO-3** | **A cap on direction reading.** A model reads the direction of at most 10 papers. | `agents/literature.py` |
 | **AO-4** | **A cap on synthesis.** The synthesizer uses at most 40 accepted records. | `agents/synthesizer.py` |
@@ -342,7 +352,7 @@ Two different things are called "prompt caching", and only one of them is built 
 services/api/                      Python backend
   bionexus/
     contracts/                     typed data models: evidence, messages, projects, identity, errors
-    agents/                        one file per agent, a shared base, and the skill registry
+    agents/                        one file per role (the code calls every role an agent), a shared base, and the skill registry
     messaging/                     message envelope builder and the allowlisted router
     workflow/                      LangGraph graph, step logic, dispatcher, budget, run executor, events
     llm/                           model catalogue, configuration releases, gateway, LangChain client
@@ -369,7 +379,7 @@ apps/web/                          Next.js app
   lib/                             configuration, sessions, Cognito and PKCE, API types, plain-language wording
   tests/                           Vitest unit tests
   middleware.ts                    sends visitors without a session to the right sign-in page
-skills/                            versioned, hashed agent instructions, one per agent
+skills/                            versioned, hashed instructions, one per role
 config/                            example model list (prices must be verified before use)
 infra/terraform/                   Lightsail, Cognito (with sign-in branding), SSM parameters, ECR, deploy role, budget alert
 infra/lightsail/                   Docker Compose stack, MVP memory limits and the Caddy TLS proxy
@@ -428,7 +438,7 @@ Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, push
 ## Limits and honest caveats
 
 - **Synthetic demo evidence.** The offline sample and the evaluation reference set are made up. They show the mechanics work, not accuracy on real research.
-- **The newest agents are tested for behaviour, not accuracy.** The planner, the critic's explanations and the verifier are tested with scripted models and sources: requests, limits, validation, fallbacks and the report are proven. Whether they improve results on real research has not been measured. `python -m bionexus.evals.ablation` runs the product with each step switched off and on, with a real model, so you can compare.
+- **The newest roles are tested for behaviour, not accuracy.** The planner, the critic's explanations and the verifier are tested with scripted models and sources: requests, limits, validation, fallbacks and the report are proven. Whether they improve results on real research has not been measured. `python -m bionexus.evals.ablation` runs the product with each step switched off and on, with a real model, so you can compare.
 - **The multi-agent design is not shown to beat a simpler one.** On the tiny offline set a single-agent baseline matches the team. Answering that needs a scientist-written locked question set and real models.
 - **Direction can be wrong.** Literature direction comes from a model reading an abstract and is labelled unreviewed. Database associations are not proof. Only a scientist's review makes a finding reliable.
 - **Source rights are conservative defaults, not legal advice.** For example only open-access Europe PMC articles are reusable.

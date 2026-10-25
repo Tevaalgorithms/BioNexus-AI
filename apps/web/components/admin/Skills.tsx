@@ -21,7 +21,7 @@ function CopyHash({ value }: { value: string }) {
 
 export function Skills() {
   return (
-    <AdminPage<SkillsPayload> path="admin/skills" title="Skills" subtitle="Approved, versioned instructions that tell each agent how to do its job and when to stop.">
+    <AdminPage<SkillsPayload> path="admin/skills" title="Skills" subtitle="Approved, versioned instructions that tell each role how to do its job and when to stop.">
       {(d) => (
         <>
           <Callout tone="info" title="What a skill is">
@@ -33,7 +33,7 @@ export function Skills() {
           </section>
           <div className="table-wrap"><table>
             <caption className="sr-only">Active skills</caption>
-            <thead><tr><th>Skill</th><th>Agent</th><th>Version</th><th>Status</th><th>Fingerprint</th><th>Instructions</th></tr></thead>
+            <thead><tr><th>Skill</th><th>Role</th><th>Version</th><th>Status</th><th>Fingerprint</th><th>Instructions</th></tr></thead>
             <tbody>{d.skills.map((s) => (
               <tr key={s.skill_id}>
                 <th scope="row"><code>{s.skill_id}</code></th>

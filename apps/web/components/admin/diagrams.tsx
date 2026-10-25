@@ -34,7 +34,7 @@ export function SourceFlowDiagram() {
       {[["1  Agents", 80], ["2  Source adapters", 270], ["3  Guarded client", 480], ["4  Public databases", 690]].map(([t, x]) => (
         <text key={t as string} x={x as number} y="16" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing=".06em" fill="var(--muted)">{(t as string).toUpperCase()}</text>
       ))}
-      <Box x={10} y={34} w={140} h={112} title="Agent team" lines={["Genetics · Literature", "Pathways · Clinical", "ask for evidence on", "a gene and a disease"]} tone="brand" />
+      <Box x={10} y={34} w={140} h={112} title="Specialists" lines={["Genetics · Literature", "Pathways · Clinical", "ask for evidence on", "a gene and a disease"]} tone="brand" />
       <Box x={200} y={34} w={140} h={112} title="BioNexus adapters" lines={["one per source", "turn each reply into", "the same evidence", "record shape"]} />
       <Box x={410} y={34} w={140} h={112} title="Guarded HTTP" lines={["HTTPS only", "host allowlist", "30 s timeout · 2 retries", "2 MB response cap"]} tone="warn" />
       <Box x={620} y={34} w={170} h={112} title="Public web APIs" lines={["Open Targets · GWAS", "Europe PMC · Reactome", "Monarch · ClinicalTrials.gov", "no login, no MCP server"]} tone="ok" />
@@ -82,9 +82,9 @@ export function ConfigFlowDiagram({ release }: { release: Release }) {
       aria-label={`Release ${release.release_id} sets a skill and a model for each of ${rows.length} agents. Every model call goes through the model gateway, which only allows approved models, applies fallback and budget, and calls the provider.`}>
       {arrowDefs}
       <text x="85" y="16" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing=".06em" fill="var(--muted)">RELEASE</text>
-      <text x="405" y="16" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing=".06em" fill="var(--muted)">EACH AGENT USES  (SKILL · MODEL ↪ FALLBACK)</text>
+      <text x="405" y="16" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing=".06em" fill="var(--muted)">EACH ROLE USES  (SKILL · MODEL ↪ FALLBACK)</text>
       <text x="700" y="16" textAnchor="middle" fontSize="11" fontWeight="700" letterSpacing=".06em" fill="var(--muted)">GATEWAY AND PROVIDERS</text>
-      <Box x={10} y={top} w={150} h={rows.length * rowH - 6} title={`Release ${release.release_id}`} lines={[`revision ${release.revision}`, `${rows.length} agent bindings`, `${Object.keys(release.skill_versions).length} skill versions`, "fixed when a run starts", "changes affect new runs"]} tone="brand" />
+      <Box x={10} y={top} w={150} h={rows.length * rowH - 6} title={`Release ${release.release_id}`} lines={[`revision ${release.revision}`, `${rows.length} role bindings`, `${Object.keys(release.skill_versions).length} skill versions`, "fixed when a run starts", "changes affect new runs"]} tone="brand" />
       {rows.map(([agent, b], i) => {
         const y = top + i * rowH;
         return (

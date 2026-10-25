@@ -26,7 +26,7 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Dashboard"
-        subtitle="Your investigations at a glance. Start a new analysis, or open one to see its evidence, agents and report."
+        subtitle="Your investigations at a glance. Start a new analysis, or open one to see its evidence, team and report."
         actions={<Link className="button" href="/app/new">New analysis</Link>}
       />
       <div className="grid cols-4" style={{ marginBottom: 18 }}>
@@ -42,7 +42,7 @@ export default function Dashboard() {
         <div className="card empty">
           <EmptyIllustration label="No investigations yet" />
           <h2>Run your first investigation</h2>
-          <p>Pick a disease and up to five genes. A team of agents gathers the evidence and you get a draft report to review, usually within minutes.</p>
+          <p>Pick a disease and up to five genes. A team of specialists and AI reviewers gathers the evidence and you get a draft report to review, usually within minutes.</p>
           <Link className="button" href="/app/new">Start an analysis</Link>
         </div>
       )}

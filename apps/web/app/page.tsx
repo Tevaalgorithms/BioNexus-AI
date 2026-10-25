@@ -68,7 +68,7 @@ export default function Home() {
 
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="statement" role="note">
-            BioNexus coordinates a team of specialist AI agents across genetics, literature, pathways and clinical trials. Every claim links to a source passage, contradictions are surfaced rather than hidden, and a scientist signs off.
+            BioNexus coordinates a team of source specialists across genetics, literature, pathways and clinical trials, with AI reviewers that plan further searches, check the findings and write the draft. Every claim links to a source passage, contradictions are surfaced rather than hidden, and a scientist signs off.
             <small>In short: faster evidence, with the trust built in.</small>
           </div>
         </section>
@@ -119,7 +119,7 @@ export default function Home() {
         <section className="band"><div className="cta-band">
           <p className="eyebrow">Our aim</p>
           <h2>Accelerating scientific discovery to bring new treatments closer to patients</h2>
-          <p className="lede" style={{ margin: "0 auto 18px" }}>Sign in, create a project, pick a disease and a few genes, and watch the agent team build a draft you can review.</p>
+          <p className="lede" style={{ margin: "0 auto 18px" }}>Sign in, create a project, pick a disease and a few genes, and watch the team build a draft you can review.</p>
           <a className="button" href="/login">Start an investigation</a>
         </div></section>
       </main>

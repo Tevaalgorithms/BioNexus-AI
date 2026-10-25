@@ -35,10 +35,10 @@ export default function ActivityFeed({ events, mode }: { events: RunEvent[]; mod
 export function Timeline({ detail }: { detail: RunDetail }) {
   return (
     <section aria-labelledby="handoffs-h">
-      <h2 id="handoffs-h">Agent handoffs</h2>
-      <p className="hint">Every request between agents is recorded. Replies are included so you can follow each conversation.</p>
+      <h2 id="handoffs-h">Handoffs</h2>
+      <p className="hint">Every request between team members is recorded. Replies are included so you can follow each conversation.</p>
       <div className="table-wrap"><table>
-        <caption className="sr-only">Messages routed between agents</caption>
+        <caption className="sr-only">Messages routed between team members</caption>
         <thead><tr><th>From</th><th>To</th><th>What</th><th>Evidence</th></tr></thead>
         <tbody>{detail.timeline.map((m) => (
           <tr key={m.message_id}><td>{agentName(m.from)}</td><td>{agentName(m.to)}</td>

@@ -10,14 +10,14 @@ export default function LoginCard({ kind, returnTo }: { kind: "admin" | "scienti
         <div style={{ maxWidth: 520 }}>
           <HeroNetwork />
           <h2 style={{ marginTop: 20 }}>Evidence you can trace, from source to sign-off</h2>
-          <p className="lede">Specialist agents gather genetic, literature, pathway and trial evidence. A critic challenges it. A scientist approves it.</p>
+          <p className="lede">Source specialists gather genetic, literature, pathway and trial evidence. AI reviewers challenge and check it. A scientist approves it.</p>
         </div>
       </aside>
       <main className="login-form" id="content">
         <div>
           <div className="brand" style={{ paddingLeft: 0 }}><Logo /> BioNexus AI</div>
           <h1 style={{ margin: "8px 0" }}>{admin ? "Administrator sign-in" : "Scientist sign-in"}</h1>
-          <p className="lede">{admin ? "Manage models, agents, sources, spend and audit history for the platform." : "Run evidence investigations and review reports for your research projects."}</p>
+          <p className="lede">{admin ? "Manage models, the team, sources, spend and audit history for the platform." : "Run evidence investigations and review reports for your research projects."}</p>
           <ul className="trust">
             <li><Icon name="lock" /> Invite-only access: accounts are created by an administrator.</li>
             <li><Icon name="shield" /> {admin ? "Administrators cannot open confidential projects unless they are members." : "Your projects are private to your organisation and its members."}</li>

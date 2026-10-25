@@ -49,7 +49,7 @@ export function ModelRegistry() {
         );
         return (
           <>
-            <p>Models can be added, deprecated or disabled at runtime. Only <em>active</em> models can be bound to an agent; deprecated models keep serving runs already pinned to them; disabled models serve nothing (runs use their approved fallback).</p>
+            <p>Models can be added, deprecated or disabled at runtime. Only <em>active</em> models can be bound to a role; deprecated models keep serving runs already pinned to them; disabled models serve nothing (runs use their approved fallback).</p>
             {message && <div className={`notice ${message.tone}`} role="status">{message.text}</div>}
             <button onClick={() => dialog.current?.showModal()}>Add model…</button>
             <div className="table-wrap"><table>

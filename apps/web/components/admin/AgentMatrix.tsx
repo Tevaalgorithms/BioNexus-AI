@@ -53,7 +53,7 @@ export default function AgentMatrix() {
 
   return (
     <>
-      <PageHeader title="Agents & models" subtitle={<>Which AI model each AI-assisted agent uses. The others are plain code and show as not used. Active release <strong>{r.release_id}</strong> (revision {r.revision}). Changes apply to <em>new</em> runs only; runs in progress stay pinned to the release they started with.</>} />
+      <PageHeader title="Team & models" subtitle={<>Which AI model each AI-assisted agent uses. The others are plain code and show as not used. Active release <strong>{r.release_id}</strong> (revision {r.revision}). Changes apply to <em>new</em> runs only; runs in progress stay pinned to the release they started with.</>} />
       {message && !dialog.current?.open && <div className={`notice ${message.tone}`} role="status">{message.text}</div>}
       <section className="card" aria-labelledby="cfg-flow-h">
         <h2 id="cfg-flow-h">How these settings are used</h2>
@@ -62,9 +62,9 @@ export default function AgentMatrix() {
       </section>
       <div className="table-wrap"><table>
         <caption className="sr-only">Agent configuration matrix</caption>
-        <thead><tr><th>Agent</th><th>Calls a model for</th><th>Primary model</th><th>Fallback</th><th>Skill version</th><th>Max output tokens</th><th><span className="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Role</th><th>Kind</th><th>Calls a model for</th><th>Primary model</th><th>Fallback</th><th>Skill version</th><th>Max output tokens</th><th><span className="sr-only">Actions</span></th></tr></thead>
         <tbody>{Object.entries(r.bindings).map(([agent, b]) => (
-          <tr key={agent}><th scope="row"><span className="row" style={{ flexWrap: "nowrap" }}><Icon name={AGENTS.find((a) => a.id === agent)?.icon ?? "cpu"} size={18} /><span>{AGENTS.find((a) => a.id === agent)?.name ?? agent}<span className="hint" style={{ display: "block", fontWeight: 400 }}>{AGENTS.find((a) => a.id === agent)?.role}</span></span></span></th><td>{AGENTS.find((a) => a.id === agent)?.modelUse ?? <span className="hint">Nothing: plain code</span>}</td>
+          <tr key={agent}><th scope="row"><span className="row" style={{ flexWrap: "nowrap" }}><Icon name={AGENTS.find((a) => a.id === agent)?.icon ?? "cpu"} size={18} /><span>{AGENTS.find((a) => a.id === agent)?.name ?? agent}<span className="hint" style={{ display: "block", fontWeight: 400 }}>{AGENTS.find((a) => a.id === agent)?.role}</span></span></span></th><td>{AGENTS.find((a) => a.id === agent)?.kind}</td><td>{AGENTS.find((a) => a.id === agent)?.modelUse ?? <span className="hint">Nothing: plain code</span>}</td>
             <td>{usesModel(agent) ? b.model_id : <span className="hint">not used</span>}</td><td>{usesModel(agent) ? b.fallback_model_id ?? "none" : <span className="hint">not used</span>}</td>
             <td>{SKILL_FOR[agent]}@{r.skill_versions[SKILL_FOR[agent]]}</td><td>{b.max_output_tokens}</td>
             <td>{usesModel(agent) ? <button className="secondary" onClick={() => open(agent)}>Change {agent} model</button> : null}</td></tr>
