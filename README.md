@@ -172,7 +172,7 @@ LangGraph node  ->  Dispatcher  ->  Planner.handle()  ->  Gateway  ->  LangChain
  (when it runs)     (our router)     (what it does)      (our rules)    (the one LangChain use)
 ```
 
-The full walkthrough, with the code for each of six steps (instructions, the role class, the model call, registration, its place in the graph, and run, pause and resume), is in [`docs/how-a-role-is-built.md`](docs/how-a-role-is-built.md).
+The full walkthrough, with the code for each of seven steps (instructions, the role class, the model call, registration, its place in the graph, how a message reaches the role, and run, pause and resume) and the whole path in order, is in [`docs/how-a-role-is-built.md`](docs/how-a-role-is-built.md).
 
 ### Why these two, and why only these parts
 

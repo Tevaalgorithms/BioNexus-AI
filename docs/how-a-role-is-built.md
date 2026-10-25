@@ -115,7 +115,39 @@ graph.add_conditional_edges("critique", self._after_critique,   # the bounded re
 return graph.compile(checkpointer=checkpointer)      # PostgreSQL in production
 ```
 
-### Step 6: run it, pause it, resume it
+### Step 6: how a message reaches the role
+
+The graph node never calls the planner. It hands a message to the **dispatcher**, which asks the **router** to check it, then calls the recipient's `handle()`. Whatever the role returns is merged into the run, a reply is recorded, and any messages the role sent are queued and delivered the same way.
+
+```python
+# workflow/dispatcher.py (trimmed)
+def _drain(self, state, initial):
+    pending = deque(initial)
+    while pending:
+        message = pending.popleft()
+        if self._accept(state, message):                    # the router checked it
+            pending.extend(self._deliver(state, message))   # the role's own messages join the queue
+
+def _deliver(self, state, message):
+    result = self._agents[message.recipient].handle(message, state)    # <- PlannerAgent.handle()
+    with state.lock:
+        self._merge(state, result)                                     # evidence, analyses, verifications
+        self._router.accept(state, reply_to(message, result, MessageType.TASK_RESULT))
+    return result.outgoing
+```
+
+```python
+# messaging/router.py (trimmed)
+def accept(self, state, message) -> bool:
+    if self._is_duplicate(state, message):     # same idempotency key: a retry never repeats work
+        return False
+    self._check_limits(state, message)         # at most 3 handoffs deep, 60 messages per run
+    self._check_route(state, message)          # allowlist, and replies only to what was asked
+    state.messages.append(message)             # recorded with the run
+    return True
+```
+
+### Step 7: run it, pause it, resume it
 
 A run is one LangGraph *thread*, named by its run id. The graph pauses at `interrupt()` until a scientist approves, and a crashed run resumes from its last checkpoint instead of starting again.
 
@@ -129,3 +161,21 @@ def _await_review(gs):
 self._graph.invoke(self._graph_input(run_id), {"configurable": {"thread_id": run_id}})   # start or resume
 self._graph.invoke(Command(resume={"reviewer": reviewer}), thread(run_id))               # after approval
 ```
+
+### The whole path, in order
+
+What happens when a scientist starts an investigation and the graph reaches the planner's step. Each line is a real function.
+
+1. `Worker.run_pending()` (`jobs/worker.py`) picks up the queued run.
+2. `RunExecutor.execute()` (`workflow/runner.py`) calls `graph.invoke(...)` on the run's thread.
+3. LangGraph runs its nodes in order. At `coverage`, `InvestigationNodes.coverage()` (`workflow/nodes.py`) builds a `task.request` from the supervisor to the planner.
+4. `Dispatcher.run()` queues it, and `MessageRouter.accept()` checks it (duplicate, depth, volume, allowlist).
+5. `Dispatcher._deliver()` calls `PlannerAgent.handle()` (`agents/planner.py`).
+6. The planner builds a counts-only prompt and calls `ask_model()`, which loads the pinned skill text and calls `ModelGateway.complete()` (`llm/gateway.py`).
+7. The gateway checks the response cache, the approved models and the budget, reserves the worst-case cost, and tries the bound model, then its fallback.
+8. `LangChainClient.generate()` (`llm/langchain_client.py`) builds a `ChatAnthropic` or `ChatOpenAI` and calls `invoke()`. This is the only LangChain call. The gateway settles the real cost and writes the call to the ledger.
+9. The planner reads the reply as untrusted text: `parse_json_object`, then validation. A bad reply means no requests.
+10. `handle()` returns an `AgentResult` whose `outgoing` holds up to 4 `evidence.request` messages.
+11. The dispatcher records the planner's reply first, then queues the requests. Each goes through step 4 and on to a specialist's `answer_request()`, a search with no model call.
+12. New evidence is merged into the run, `nodes.done()` saves it, and LangGraph moves on to the `critique` node.
+
