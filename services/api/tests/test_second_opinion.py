@@ -123,6 +123,19 @@ def test_a_handoff_says_what_the_challenge_asked_for(state):
     assert timeline_entry(critic_task(state))["ask"] is None
 
 
+def test_the_meta_payload_reports_the_real_run_limits():
+    from bionexus.config import Settings
+    from bionexus.container import build_container
+    from bionexus.workflow.nodes import MAX_REPAIR_ROUNDS
+
+    app = build_container({}, settings=Settings(run_budget_usd=0.5, run_warn_usd=0.25))
+    assert app.meta()["limits"] == {
+        "run_budget_usd": 0.5,
+        "run_warn_usd": 0.25,
+        "max_repair_rounds": MAX_REPAIR_ROUNDS,
+    }
+
+
 def test_the_same_record_is_challenged_only_once(state):
     contested(state)
     first = critic().handle(critic_task(state), state).outgoing

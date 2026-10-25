@@ -12,7 +12,11 @@ import { SOURCE_LABELS } from "@/lib/explain";
 const GENE = /^[A-Za-z0-9-]{2,15}$/;
 
 interface Errors { project?: string; disease?: string; targets?: string; question?: string; cutoff?: string; form?: string }
-interface Meta { data_mode: "demo" | "live"; demo_diseases: string[]; model_mode: "demo" | "live"; sources: string[] }
+interface Meta {
+  data_mode: "demo" | "live"; demo_diseases: string[]; model_mode: "demo" | "live"; sources: string[];
+  limits: { run_budget_usd: number; run_warn_usd: number; max_repair_rounds: number };
+}
+const usd = (n: number) => n.toFixed(n < 1 ? 2 : 0);
 
 export default function NewAnalysisForm() {
   const router = useRouter();
@@ -113,14 +117,14 @@ export default function NewAnalysisForm() {
           <label htmlFor="cutoff">Evidence cutoff</label>
           <input id="cutoff" type="date" value={values.cutoff} max={today} onChange={set("cutoff")} aria-invalid={!!errors.cutoff} />
           <p className="hint">Only evidence available on or before this date is used. Databases that do not date their records are treated as first seen today.</p>
-          <p className="hint">Limits: up to US$10 model spend per investigation (warning at US$5), at most two repair rounds.</p>
+          {meta && <p className="hint">Limits: up to US${usd(meta.limits.run_budget_usd)} model spend per investigation (warning at US${usd(meta.limits.run_warn_usd)}), at most {meta.limits.max_repair_rounds} repair rounds.</p>}
           <button type="submit" disabled={busy} style={{ marginTop: 18 }}>{busy ? "Starting…" : "Start analysis"}</button>
         </form>
         <aside className="card" aria-labelledby="next-h">
           <h2 id="next-h">What happens next</h2>
           <ol style={{ paddingLeft: 20 }}>
-            <li><strong>Gather:</strong> genetics, literature, pathway and trial agents search approved sources in parallel.</li>
-            <li><strong>Challenge:</strong> a critic flags contradictions and missing support, and asks for repairs.</li>
+            <li><strong>Gather:</strong> genetics, literature and clinical agents search approved sources in parallel. Genetics can ask the pathways agent for context.</li>
+            <li><strong>Challenge:</strong> a critic flags contradictions and missing support. It asks the literature agent for missing passages and a second look at conflicting directions.</li>
             <li><strong>Draft:</strong> findings are written using only accepted evidence.</li>
             <li><strong>You decide:</strong> review, exclude anything you distrust, and approve a version.</li>
           </ol>

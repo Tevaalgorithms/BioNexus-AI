@@ -46,7 +46,7 @@ from bionexus.storage.ports import Storage
 from bionexus.workflow.dispatcher import Dispatcher
 from bionexus.workflow.events import EventPublisher
 from bionexus.workflow.graph import build_graph
-from bionexus.workflow.nodes import InvestigationNodes
+from bionexus.workflow.nodes import MAX_REPAIR_ROUNDS, InvestigationNodes
 from bionexus.workflow.runner import RunExecutor
 
 SKILL_VERSIONS = {
@@ -234,11 +234,13 @@ def build_container(
         nodes=nodes,
         projects=ProjectService(storage.projects, storage.users),
         inline_worker=settings_provider().inline_worker,
-        meta=lambda: describe_mode(sources, registry, releases),
+        meta=lambda: describe_mode(sources, registry, releases, settings_provider()),
     )
 
 
-def describe_mode(sources: SourceRegistry, registry: ModelRegistry, releases: ReleaseStore) -> dict:
+def describe_mode(
+    sources: SourceRegistry, registry: ModelRegistry, releases: ReleaseStore, settings: Settings
+) -> dict:
     """What the running system is actually using, so the UI can say so plainly."""
     providers = {
         registry.get_for_call(b.model_id).provider for b in releases.active().bindings.values()
@@ -249,6 +251,11 @@ def describe_mode(sources: SourceRegistry, registry: ModelRegistry, releases: Re
         "demo_diseases": [] if live else sources.fixture_diseases(),
         "model_mode": "demo" if providers <= {"fixture"} else "live",
         "sources": [row["name"] for row in sources.describe()],
+        "limits": {
+            "run_budget_usd": settings.run_budget_usd,
+            "run_warn_usd": settings.run_warn_usd,
+            "max_repair_rounds": MAX_REPAIR_ROUNDS,
+        },
     }
 
 

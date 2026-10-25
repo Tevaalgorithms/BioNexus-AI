@@ -9,7 +9,8 @@ export default function AgentTeam({ detail, report }: { detail: RunDetail; repor
     <div className="grid cols-2">
       {AGENTS.map((agent) => {
         const retained = detail.evidence.filter((e) => agent.sources.includes(e.source)).length;
-        const received = detail.timeline.filter((m) => m.to === agent.id).length;
+        // Replies are not tasks: count only requests and challenges addressed to this agent.
+        const received = detail.timeline.filter((m) => m.to === agent.id && m.type !== "task.result").length;
         const models = [...new Set(calls.filter((c) => c.agent === agent.id).map((c) => c.model_id))];
         return (
           <article className="card agent" key={agent.id} aria-labelledby={`agent-${agent.id}`}>
