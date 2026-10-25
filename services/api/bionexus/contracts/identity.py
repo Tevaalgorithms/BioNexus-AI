@@ -18,6 +18,15 @@ class ClientKind(StrEnum):
     UNSPECIFIED = "unspecified"
 
 
+class UserRecord(BaseModel):
+    """An account as an administrator sees it. The identity provider's subject is never shown."""
+
+    user_id: str
+    role: Role
+    tenant_id: str
+    active: bool = True
+
+
 class Principal(BaseModel):
     model_config = ConfigDict(frozen=True)
 

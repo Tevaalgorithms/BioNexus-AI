@@ -22,7 +22,9 @@ from bionexus.agents.verifier import VerifierAgent
 from bionexus.application.admin import AdminService
 from bionexus.application.projects import ProjectService
 from bionexus.application.services import InvestigationService
+from bionexus.application.users import UserService
 from bionexus.auth.policy import StaticTokenVerifier, TokenVerifier
+from bionexus.auth.provisioner import CognitoProvisioner, LocalProvisioner, UserProvisioner
 from bionexus.config import Settings
 from bionexus.contracts.identity import ClientKind, Principal, Role
 from bionexus.contracts.investigation import InvestigationRequest
@@ -112,6 +114,7 @@ class Container:
     nodes: InvestigationNodes
     gateway: ModelGateway
     projects: ProjectService
+    users: UserService
     inline_worker: bool = True
     meta: Callable[[], dict] = field(default=dict)
 
@@ -136,6 +139,14 @@ def default_release() -> ConfigRelease:
             p.require("BIONEXUS_DEFAULT_MODEL"), p.get("BIONEXUS_FALLBACK_MODEL")
         )
     return initial_release()
+
+
+def build_provisioner() -> UserProvisioner:
+    """Cognito in production; locally nothing is created or sent."""
+    p = parameters()
+    if not p.is_production():
+        return LocalProvisioner()
+    return CognitoProvisioner(p.require("COGNITO_USER_POOL_ID"), p.require("COGNITO_REGION"))
 
 
 def build_sources(live: bool) -> SourceRegistry:
@@ -199,6 +210,7 @@ def build_container(
     sources: SourceRegistry | None = None,
     initial: ConfigRelease | None = None,
     disabled_steps: frozenset[str] = frozenset(),
+    provisioner: UserProvisioner | None = None,
 ) -> Container:
     settings_provider = (lambda: settings) if settings else Settings.current
     storage = storage or in_memory_storage(principals)
@@ -247,6 +259,7 @@ def build_container(
         nodes=nodes,
         gateway=gateway,
         projects=ProjectService(storage.projects, storage.users),
+        users=UserService(storage.users, provisioner or build_provisioner(), storage.audit),
         inline_worker=settings_provider().inline_worker,
         meta=lambda: describe_mode(sources, registry, releases, settings_provider()),
     )

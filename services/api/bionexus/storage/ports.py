@@ -7,7 +7,7 @@ from typing import Protocol
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from bionexus.contracts.evidence import EvidenceRecord
-from bionexus.contracts.identity import Principal
+from bionexus.contracts.identity import Principal, UserRecord
 from bionexus.contracts.project import Project
 from bionexus.jobs.models import Job
 from bionexus.llm.models import ConfigRelease
@@ -71,6 +71,8 @@ class UserDirectory(Protocol):
     def revoke_sessions(self, subject: str, at: datetime) -> None: ...
     def upsert(self, subject: str, principal: Principal) -> None: ...
     def disable(self, subject: str) -> None: ...
+    def list_users(self, tenant_id: str) -> list[UserRecord]: ...
+    def subject_for(self, user_id: str) -> str | None: ...
 
 
 class ProjectStore(Protocol):

@@ -33,6 +33,7 @@ export interface Release {
   bindings: Record<string, { model_id: string; fallback_model_id: string | null; max_output_tokens: number; temperature: number | null }>;
   skill_versions: Record<string, string>;
 }
+export interface UserRow { user_id: string; role: string; tenant_id: string; active: boolean }
 export interface ModelRow {
   model_id: string; provider: string; supports_structured_output: boolean; input_usd_per_million: number;
   output_usd_per_million: number; price_verified_on: string | null; credential_status: string; status: string;

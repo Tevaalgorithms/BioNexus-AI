@@ -102,6 +102,28 @@ data "aws_iam_policy_document" "runtime" {
   }
 }
 
+# The admin console's Users page creates and switches off sign-in accounts. Only these six actions,
+# only on this pool. Who may use them is decided by the API: the caller must be a platform admin.
+data "aws_iam_policy_document" "runtime_users" {
+  statement {
+    actions = [
+      "cognito-idp:AdminCreateUser",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminEnableUser",
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminAddUserToGroup",
+      "cognito-idp:AdminUserGlobalSignOut",
+    ]
+    resources = [aws_cognito_user_pool.main.arn]
+  }
+}
+
+resource "aws_iam_user_policy" "runtime_users" {
+  name   = "manage-bionexus-users"
+  user   = aws_iam_user.runtime.name
+  policy = data.aws_iam_policy_document.runtime_users.json
+}
+
 resource "aws_iam_user_policy" "runtime" {
   name   = "read-bionexus-parameters"
   user   = aws_iam_user.runtime.name

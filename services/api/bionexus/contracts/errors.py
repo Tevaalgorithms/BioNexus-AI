@@ -21,6 +21,16 @@ class InvalidRequest(BioNexusError):
     code = "invalid_request"
 
 
+class RateLimited(BioNexusError):
+    code = "rate_limited"
+
+
+class ProvisioningFailed(BioNexusError):
+    """The identity provider could not create or change an account."""
+
+    code = "provisioning_failed"
+
+
 class InvalidTransition(BioNexusError):
     code = "invalid_transition"
 

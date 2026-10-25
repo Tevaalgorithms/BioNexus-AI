@@ -29,7 +29,7 @@ In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 secon
 - **A human gate:** the run pauses for review. A scientist can exclude evidence, regenerate the draft, and approve one version by its content hash.
 - **Reports** in Markdown, Word and a JSON manifest with the configuration release, skill hashes and every model call.
 - **Project spaces:** a private workspace per disease or study. Reviewed evidence is reused only inside the project where it was approved.
-- **Admin console:** add or retire AI models at runtime, change which model each role uses (validate, evaluate, activate, roll back), usage and cost, source health, skills, an audit log and an emergency stop.
+- **Admin console:** invite scientists and admins by email (Cognito sends the temporary password), add or retire AI models at runtime, change which model each role uses (validate, evaluate, activate, roll back), usage and cost, source health, skills, an audit log and an emergency stop.
 - **Spending caps:** per-run and per-organisation model budgets, reserved before each call.
 - **Configuration:** a git-ignored `.env` locally, AWS SSM Parameter Store in production. No secret is in the code.
 

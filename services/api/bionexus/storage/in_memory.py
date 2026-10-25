@@ -7,7 +7,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from bionexus.contracts.errors import Conflict, NotFound
 from bionexus.contracts.evidence import EvidenceRecord, ReviewState
-from bionexus.contracts.identity import Principal
+from bionexus.contracts.identity import Principal, UserRecord
 from bionexus.contracts.project import Project
 from bionexus.evidence.eligibility import exclusion_reason
 from bionexus.jobs.models import Job
@@ -195,6 +195,16 @@ class InMemoryUsers:
 
     def disable(self, subject: str) -> None:
         self._principals.pop(subject, None)
+
+    def list_users(self, tenant_id: str) -> list[UserRecord]:
+        mine = [p for p in self._principals.values() if p.tenant_id == tenant_id]
+        return sorted(
+            (UserRecord(user_id=p.user_id, role=p.role, tenant_id=p.tenant_id) for p in mine),
+            key=lambda u: u.user_id,
+        )
+
+    def subject_for(self, user_id: str) -> str | None:
+        return next((s for s, p in self._principals.items() if p.user_id == user_id), None)
 
 
 class InMemoryEvents:

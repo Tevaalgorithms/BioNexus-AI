@@ -7,6 +7,7 @@ from bionexus.api.admin_routes import router as admin_router
 from bionexus.api.deps import Caller
 from bionexus.api.project_routes import router as project_router
 from bionexus.api.run_routes import router as run_router
+from bionexus.api.user_routes import router as user_router
 from bionexus.container import Container
 from bionexus.contracts.errors import BioNexusError
 from bionexus.params import parameters
@@ -18,6 +19,8 @@ STATUS_BY_CODE = {
     "invalid_request": 422,
     "invalid_transition": 409,
     "budget_exceeded": 429,
+    "rate_limited": 429,
+    "provisioning_failed": 502,
 }
 
 platform_router = APIRouter()
@@ -55,6 +58,6 @@ def create_app(container: Container) -> FastAPI:
     )
     app.state.container = container
     app.add_exception_handler(BioNexusError, domain_error_response)
-    for router in (platform_router, project_router, run_router, admin_router):
+    for router in (platform_router, project_router, run_router, admin_router, user_router):
         app.include_router(router)
     return app

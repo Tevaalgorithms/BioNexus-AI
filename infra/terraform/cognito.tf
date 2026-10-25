@@ -10,6 +10,12 @@ resource "aws_cognito_user_pool" "main" {
     allow_admin_create_user_only = true # invite-only: no public registration (AUTH-01/05)
   }
 
+  # AWS added a passkey (WebAuthn) block to the pool on its own. We do not configure it, and
+  # Terraform must not strip it out when something else changes.
+  lifecycle {
+    ignore_changes = [web_authn_configuration]
+  }
+
   password_policy {
     minimum_length    = 14
     require_lowercase = true

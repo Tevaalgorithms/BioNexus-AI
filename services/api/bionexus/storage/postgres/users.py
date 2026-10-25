@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from bionexus.contracts.identity import Principal, Role
+from bionexus.contracts.identity import Principal, Role, UserRecord
 from bionexus.storage.postgres.database import Database
 
 
@@ -57,6 +57,18 @@ class PostgresUsers:
                 "INSERT INTO memberships (subject, project_id) VALUES (%s, %s)",
                 (subject, project_id),
             )
+
+    def list_users(self, tenant_id: str) -> list[UserRecord]:
+        rows = self._db.fetch_all(
+            "SELECT user_id, role, tenant_id, active FROM app_users"
+            " WHERE tenant_id = %s ORDER BY user_id",
+            (tenant_id,),
+        )
+        return [UserRecord(**row) for row in rows]
+
+    def subject_for(self, user_id: str) -> str | None:
+        row = self._db.fetch_one("SELECT subject FROM app_users WHERE user_id = %s", (user_id,))
+        return row["subject"] if row else None
 
     def disable(self, subject: str) -> None:
         self._db.execute("UPDATE app_users SET active = false WHERE subject = %s", (subject,))
