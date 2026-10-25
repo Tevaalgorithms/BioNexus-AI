@@ -3,6 +3,7 @@
 from datetime import date
 
 from bionexus.contracts.evidence import EvidenceRecord, Stance
+from bionexus.contracts.hints import SearchHint
 from bionexus.sources.live.common import (
     HUMAN,
     LiveSource,
@@ -13,7 +14,9 @@ class MonarchSource(LiveSource):
     name = "monarch"
     BASE = "https://api-v3.monarchinitiative.org/v3/api"
 
-    def search(self, disease: str, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def search(
+        self, disease: str, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         records: list[EvidenceRecord] = []
         for target in targets:
             gene_id = self._gene_id(target)

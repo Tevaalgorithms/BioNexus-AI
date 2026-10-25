@@ -49,7 +49,9 @@ def state(request_):
 
 
 def literature(gateway, records=()) -> LiteratureAgent:
-    sources = SimpleNamespace(get=lambda name: SimpleNamespace(search=lambda d, t: list(records)))
+    sources = SimpleNamespace(
+        get=lambda name: SimpleNamespace(search=lambda d, t, hint=None: list(records))
+    )
     agent = LiteratureAgent(SimpleNamespace(gateway=gateway, sources=sources))
     agent.instructions = lambda state: "skill"
     return agent

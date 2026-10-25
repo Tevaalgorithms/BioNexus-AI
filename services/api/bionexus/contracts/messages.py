@@ -13,12 +13,15 @@ class AgentName(StrEnum):
     CLINICAL = "clinical"
     CRITIC = "critic"
     SYNTHESIZER = "synthesizer"
+    PLANNER = "planner"
+    VERIFIER = "verifier"
 
 
 class MessageType(StrEnum):
     TASK_REQUEST = "task.request"
     TASK_RESULT = "task.result"
     EVIDENCE_CHALLENGE = "evidence.challenge"
+    EVIDENCE_REQUEST = "evidence.request"  # "search again with this hint"
     TASK_FAILED = "task.failed"
 
 

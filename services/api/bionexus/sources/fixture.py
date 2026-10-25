@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from bionexus.contracts.evidence import EvidenceRecord
+from bionexus.contracts.hints import SearchHint
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
@@ -25,7 +26,9 @@ class FixtureSource:
     def disease_name(self) -> str:
         return self._disease
 
-    def search(self, disease: str, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def search(
+        self, disease: str, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         if disease.lower() != self._disease:
             return []
         return [record for record in self._records if record.target in targets]

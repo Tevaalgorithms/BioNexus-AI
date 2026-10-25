@@ -8,14 +8,15 @@ A = AgentName
 SPECIALISTS = frozenset({A.GENETICS, A.LITERATURE, A.PATHWAYS, A.CLINICAL})
 
 ALLOWED_ROUTES: dict[AgentName, frozenset[AgentName]] = {
-    A.SUPERVISOR: SPECIALISTS | {A.CRITIC, A.SYNTHESIZER},
+    A.SUPERVISOR: SPECIALISTS | {A.CRITIC, A.SYNTHESIZER, A.PLANNER, A.VERIFIER},
     A.GENETICS: frozenset({A.PATHWAYS}),
     A.CRITIC: SPECIALISTS,
+    A.PLANNER: SPECIALISTS,
 }
 REPLY_TYPES = frozenset({MessageType.TASK_RESULT, MessageType.TASK_FAILED})
 
 MAX_DEPTH = 3
-MAX_MESSAGES_PER_RUN = 40
+MAX_MESSAGES_PER_RUN = 60
 
 
 class MessageRouter:
@@ -50,3 +51,8 @@ class MessageRouter:
         parents = [m for m in state.messages if m.message_id == message.parent_id]
         if not parents or parents[0].sender != message.recipient:
             raise RouteRejected("A reply must answer a message addressed to the sender")
+
+
+def exchanges_available(state: RunState, reserve: int) -> int:
+    """How many more ask-and-reply pairs fit in the run's message cap, keeping `reserve` free."""
+    return max(0, (MAX_MESSAGES_PER_RUN - len(state.messages) - reserve) // 2)

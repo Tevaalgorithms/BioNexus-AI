@@ -3,6 +3,7 @@
 from datetime import date
 
 from bionexus.contracts.evidence import EvidenceRecord, Stance
+from bionexus.contracts.hints import SearchHint
 from bionexus.sources.live.common import (
     HUMAN,
     LiveSource,
@@ -14,7 +15,9 @@ class ReactomeSource(LiveSource):
     name = "reactome"
     URL = "https://reactome.org/ContentService/search/query"
 
-    def search(self, disease: str, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def search(
+        self, disease: str, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         records: list[EvidenceRecord] = []
         for target in targets:
             params = {"query": target, "species": "Homo sapiens", "types": "Pathway"}

@@ -1,22 +1,43 @@
 """Europe PMC: published literature."""
 
 from bionexus.contracts.evidence import EvidenceRecord, Stance
+from bionexus.contracts.hints import HintKind, SearchHint
 from bionexus.sources.live.common import HUMAN, LiveSource, parse_date, plain
+
+
+def _any_of(terms: list[str]) -> str:
+    quoted = [f'"{t}"' for t in terms]
+    return quoted[0] if len(quoted) == 1 else "(" + " OR ".join(quoted) + ")"
 
 
 class EuropePmcSource(LiveSource):
     name = "europe_pmc"
     URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
-    def search(self, disease: str, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def search(
+        self, disease: str, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         records: list[EvidenceRecord] = []
         for target in targets:
-            query = f'"{target}" AND "{disease}" AND HAS_ABSTRACT:Y'
+            query = self._query(disease, target, hint)
             params = {"query": query, "format": "json", "resultType": "core", "pageSize": 10}
             payload = self._http.get_json(self.URL, params)
             results = payload.get("resultList", {}).get("result", [])
             records.extend(self._to_record(row, target) for row in results)
         return records
+
+    @staticmethod
+    def _query(disease: str, target: str, hint: SearchHint | None) -> str:
+        """No hint: the plain query. A hint adds an alternative name or a qualifier."""
+        genes, diseases = [target], [disease]
+        if hint and hint.kind is HintKind.GENE:
+            genes.append(hint.text)
+        if hint and hint.kind is HintKind.DISEASE:
+            diseases.append(hint.text)
+        query = f"{_any_of(genes)} AND {_any_of(diseases)} AND HAS_ABSTRACT:Y"
+        if hint and hint.kind is HintKind.CONTEXT:
+            query += f' AND "{hint.text}"'
+        return query
 
     @staticmethod
     def _to_record(row: dict, target: str) -> EvidenceRecord:

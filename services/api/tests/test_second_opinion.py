@@ -12,6 +12,7 @@ from bionexus.contracts.evidence import EvidenceRecord, IssueKind, Stance
 from bionexus.contracts.messages import AgentName, ChallengeAsk, MessageType
 from bionexus.evidence.stance import MODEL_STANCE_NOTE, RECHECKED_NOTE
 from bionexus.messaging.envelope import new_message
+from bionexus.messaging.router import MAX_MESSAGES_PER_RUN
 from bionexus.workflow.budget import Budget
 from bionexus.workflow.state import RunState
 
@@ -162,7 +163,7 @@ def test_no_challenge_is_sent_when_the_message_budget_is_nearly_spent(state):
         kind=MessageType.TASK_REQUEST,
         payload={},
     )
-    state.messages.extend([filler] * 37)
+    state.messages.extend([filler] * (MAX_MESSAGES_PER_RUN - 3))
     assert critic().pending_repairs(state) == []
 
 

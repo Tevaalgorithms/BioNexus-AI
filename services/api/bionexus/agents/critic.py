@@ -10,11 +10,11 @@ from bionexus.contracts.messages import AgentMessage, AgentName, ChallengeAsk, M
 from bionexus.evidence.matrix import build_matrix
 from bionexus.evidence.stance import is_model_read
 from bionexus.messaging.envelope import new_message
-from bionexus.messaging.router import MAX_MESSAGES_PER_RUN
+from bionexus.messaging.router import exchanges_available
 from bionexus.workflow.state import RunState
 
 CHALLENGEABLE_SOURCES = frozenset({"europe_pmc"})
-MESSAGE_RESERVE = 4  # room kept for the critic's own task and reply
+MESSAGE_RESERVE = 6  # room kept for the critic's own task and reply, and the verifier's
 
 
 @dataclass(frozen=True)
@@ -92,8 +92,8 @@ class CriticAgent(Agent):
 
     @staticmethod
     def _room(state: RunState) -> int:
-        """A challenge costs two messages (ask and reply); the router caps a run at 40."""
-        return max(0, (MAX_MESSAGES_PER_RUN - len(state.messages) - MESSAGE_RESERVE) // 2)
+        """A challenge costs two messages (ask and reply); the router caps the run."""
+        return exchanges_available(state, MESSAGE_RESERVE)
 
     def _repairs_for(self, issue: Issue, state: RunState) -> list[Repair]:
         if issue.kind is IssueKind.MISSING_PASSAGE:

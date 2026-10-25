@@ -34,12 +34,18 @@ class LiteratureAgent(SpecialistAgent):
 
     def assess(self, message: AgentMessage, state: RunState) -> AgentResult:
         result = super().assess(message, state)
-        read, unread = (
-            result.evidence[:AO_MAX_DIRECTION_CALLS],
-            result.evidence[AO_MAX_DIRECTION_CALLS:],
-        )
-        result.evidence = [*self._with_stances(read, state), *unread]
+        result.evidence = self._classified(result.evidence, state)
         return result
+
+    def answer_request(self, message: AgentMessage, state: RunState) -> AgentResult:
+        """New papers found with a hint get their direction read like the first ones."""
+        result = super().answer_request(message, state)
+        result.evidence = self._classified(result.evidence, state)
+        return result
+
+    def _classified(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
+        read, unread = records[:AO_MAX_DIRECTION_CALLS], records[AO_MAX_DIRECTION_CALLS:]
+        return [*self._with_stances(read, state), *unread]
 
     def _with_stances(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
         """AO-7: the direction calls are independent, so they run together; order is kept."""

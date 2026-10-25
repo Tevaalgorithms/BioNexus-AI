@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field
 
 from bionexus.agents.optimization import AO_PASSAGE_CHARS
 from bionexus.agents.skills import SkillRegistry
+from bionexus.contracts.errors import SourceUnavailable
 from bionexus.contracts.evidence import EvidenceRecord, Exclusion, Issue
+from bionexus.contracts.hints import SearchHint, clean_hint
 from bionexus.contracts.messages import AgentMessage, AgentName, MessageType
 from bionexus.evidence.eligibility import partition_eligible
 from bionexus.llm.gateway import ModelGateway
@@ -71,6 +73,8 @@ class SpecialistAgent(Agent):
     def handle(self, message: AgentMessage, state: RunState) -> AgentResult:
         if message.type is MessageType.EVIDENCE_CHALLENGE:
             return self.answer_challenge(message, state)
+        if message.type is MessageType.EVIDENCE_REQUEST:
+            return self.answer_request(message, state)
         return self.assess(message, state)
 
     def assess(self, message: AgentMessage, state: RunState) -> AgentResult:
@@ -88,12 +92,33 @@ class SpecialistAgent(Agent):
             outgoing=self.follow_ups(eligible, message, state),
         )
 
-    def _search(self, state: RunState, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def _search(
+        self, state: RunState, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         records: list[EvidenceRecord] = []
         for source_name in self.source_names:
             source = self.deps.sources.get(source_name)
-            records.extend(source.search(state.request.disease, targets))
+            records.extend(source.search(state.request.disease, targets, hint))
         return records
+
+    def answer_request(self, message: AgentMessage, state: RunState) -> AgentResult:
+        """Search again with the hint another agent asked for. No model call is needed."""
+        hint = clean_hint(message.payload.get("kind"), message.payload.get("text"))
+        if hint is None:
+            return AgentResult(abstained=True, assessment="The hint was not a valid search term.")
+        try:
+            found = self._search(state, state.request.targets, hint)
+        except SourceUnavailable:  # an optional extra search must not end the run
+            return AgentResult(abstained=True, assessment="The source did not answer.")
+        eligible, excluded = partition_eligible(found, state.request.evidence_cutoff)
+        fresh = [r for r in eligible if r.evidence_id not in state.evidence]
+        known = {e.evidence_id for e in state.excluded}
+        return AgentResult(
+            evidence=fresh,
+            excluded=[e for e in excluded if e.evidence_id not in known],
+            abstained=not fresh,
+            assessment=f"{len(fresh)} new records for '{hint.text}'.",
+        )
 
     def follow_ups(
         self, evidence: list[EvidenceRecord], message: AgentMessage, state: RunState

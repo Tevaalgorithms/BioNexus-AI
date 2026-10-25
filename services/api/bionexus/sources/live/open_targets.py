@@ -3,6 +3,7 @@
 from datetime import date
 
 from bionexus.contracts.evidence import EvidenceRecord, Stance
+from bionexus.contracts.hints import SearchHint
 from bionexus.sources.live.common import (
     HUMAN,
     LiveSource,
@@ -21,7 +22,9 @@ class OpenTargetsSource(LiveSource):
         "{rows{target{id approvedSymbol} score datatypeScores{id score}}}}}"
     )
 
-    def search(self, disease: str, targets: tuple[str, ...]) -> list[EvidenceRecord]:
+    def search(
+        self, disease: str, targets: tuple[str, ...], hint: SearchHint | None = None
+    ) -> list[EvidenceRecord]:
         disease_hit = self._first_hit(disease, "disease")
         if disease_hit is None:
             return []
