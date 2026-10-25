@@ -97,6 +97,8 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
 /* ---------- tables / badges / tabs ---------- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
 table { border-collapse: collapse; width: 100%; background: var(--surface); font-size: .93rem; }
+/* Team & models: keep the role column readable, and the action button on one line. */
+.matrix th[scope="row"] { min-width: 16rem; } .matrix td:nth-child(3) { min-width: 9rem; } .matrix th, .matrix td { padding: 10px 10px; } .matrix td button { white-space: nowrap; }
 th, td { border-bottom: 1px solid var(--border); padding: 10px 14px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 svg { flex: none; } .table-wrap table { min-width: 560px; }
 thead th { white-space: nowrap; background: var(--surface-2); font-size: .76rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
