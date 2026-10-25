@@ -1,6 +1,8 @@
 import os
 from datetime import date
+from functools import cache
 
+import psycopg
 import pytest
 
 from bionexus.container import Container, build_container
@@ -29,10 +31,22 @@ TOKENS = {"admin": ADMIN, "sci": SCIENTIST, "outsider": OUTSIDER}
 TEST_DSN = os.getenv("BIONEXUS_TEST_DSN") or DotEnvSource().load().get("BIONEXUS_TEST_DSN", "")
 
 
+@cache
+def postgres_unreachable() -> str:
+    """Why there is no database ('' when there is one). Asked once: 2 s, not 30 s a test."""
+    if not TEST_DSN:
+        return "BIONEXUS_TEST_DSN is not set"
+    try:
+        psycopg.connect(TEST_DSN, connect_timeout=2).close()
+    except psycopg.Error as error:
+        return f"PostgreSQL unavailable: {error}"
+    return ""
+
+
 def fresh_postgres_storage():
     """A clean, migrated database per test; skips when no PostgreSQL is reachable."""
-    if not TEST_DSN:
-        pytest.skip("BIONEXUS_TEST_DSN is not set")
+    if reason := postgres_unreachable():
+        pytest.skip(reason)
     try:
         db = Database(TEST_DSN)
         db.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public")

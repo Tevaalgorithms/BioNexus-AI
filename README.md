@@ -298,7 +298,7 @@ cd services/api
 ../../.venv/bin/python -m bionexus.cli.demo   # a full investigation, prints the draft report
 ```
 
-PostgreSQL test cases need a database. `scripts/init-env.sh` writes `BIONEXUS_TEST_DSN` into `.env` with the exact `docker run` line for a throwaway one. Without it those cases skip.
+About 100 test cases need PostgreSQL and are skipped when none is running, so expect `265 passed, 100 skipped`. To run them too, start the throwaway database from the `docker run` line in your `.env` (`scripts/init-env.sh` writes it next to `BIONEXUS_TEST_DSN`).
 
 **Run the web app** in two terminals:
 
