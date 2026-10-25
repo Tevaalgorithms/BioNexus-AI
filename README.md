@@ -142,13 +142,14 @@ flowchart TB
     PLAN --> CRIT["Critic<br/>missing passages · conflicts · single-study support<br/>explains each conflict"]
     CRIT -- "evidence.challenge: a passage or a second look<br/>evidence.request: more evidence<br/>repair loop, at most 2 rounds" --> LIT
     CRIT -- "evidence.request" --> GEN
+    CRIT -- "evidence.request" --> CLI
     CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
     RANK --> SYN["Synthesizer<br/>claims from accepted evidence only"]
     SYN --> VER["Verifier<br/>rebuilds claims by code<br/>checks each summary sentence<br/>withholds what is unsupported"]
     VER --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
 ```
 
-Up to two specialists run at the same time. The workflow, not an agent, calls the synthesizer after ranking, and it hands the run to the planner and the verifier at their steps.
+Up to two specialists run at the same time. The workflow calls the synthesizer directly after ranking. The supervisor starts the planner, the critic and the verifier by sending each a task at its step, so those handoffs are recorded like any other.
 
 ### Agent-to-agent communication
 
@@ -168,24 +169,26 @@ sequenceDiagram
     G->>P: task.request (supported genes only)
     P-->>G: task.result
     S->>PL: task.request (review coverage)
+    PL-->>S: task.result
     PL->>L: evidence.request (another disease name)
     L-->>PL: task.result (the new papers)
-    PL-->>S: task.result
     S->>C: task.request (repair round)
+    C-->>S: task.result (conflicts explained)
     C->>L: evidence.challenge (supply the supporting passage)
     L-->>C: task.result (the passage, or "not found")
     C->>L: evidence.challenge (re-check a conflicting direction)
     L-->>C: task.result (the re-read direction)
     C->>G: evidence.request (for example, another ancestry)
     G-->>C: task.result (the new records)
-    C-->>S: task.result (conflicts explained)
     S->>V: task.request (verify the findings)
     V-->>S: task.result (what was withheld)
 ```
 
+An agent replies to the message it was given as soon as it has handled it, so each reply comes before the requests that agent sends in the same turn. The order above is the order recorded in a real run.
+
 **The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are five types: `task.request`, `task.result`, `evidence.challenge`, `evidence.request` and `task.failed`. The router accepts `task.failed` as a reply, but no agent sends it today: a failing step ends the run honestly instead (incomplete or failed).
 
-**What a request may carry.** An `evidence.request` asks a specialist to search again with one hint: another name for the disease, an alias for a gene, or a short qualifier. A hint comes from a model, so it is checked before use (`contracts/hints.py`): 2 to 60 characters, letters, digits and a little punctuation, and never a quote or a query operator. Europe PMC, ClinicalTrials.gov and GWAS use a hint to widen their query; the other sources ignore it. The specialist answers with a search, so a request costs no model call, and only evidence the run does not already have is added.
+**What a request may carry.** An `evidence.request` asks a specialist to search again with one hint: another name for the disease, an alias for a gene, or a short qualifier. A hint comes from a model, so it is checked before use (`contracts/hints.py`): 2 to 60 characters of letters, digits and a little punctuation, and never a double quote, so a hint cannot break out of the quoted phrase it is placed in. Europe PMC and ClinicalTrials.gov use any kind of hint to widen their query. GWAS uses a disease name or a gene alias and ignores a qualifier. The other sources ignore hints. The specialist answers with a search, so a request costs no model call, and only evidence the run does not already have is added.
 
 **What the router enforces** (`messaging/router.py`):
 
@@ -194,7 +197,7 @@ sequenceDiagram
 | Allowlist | Supervisor may message every other agent. Genetics may message pathways. The critic and the planner may message the four specialists. Anything else is rejected. |
 | Replies | A `task.result` or `task.failed` is accepted only as an answer to a message that was addressed to the sender. |
 | Depth cap | A chain of handoffs may be at most 3 deep. |
-| Volume cap | At most 60 messages per run. The planner and the critic check the room left before sending, so the cap is never what ends a run. |
+| Volume cap | At most 60 messages per run. The planner and the critic check the room left before sending and keep some in reserve for the verifier, so the cap is not expected to end a run. |
 | No duplicates | A message with the same idempotency key (sender, recipient, type and payload) is dropped, so a retry never repeats work. |
 
 The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists, the planner, the critic and the verifier; genetics to pathways; the planner and the critic to genetics, literature and clinical; and the critic to literature.
@@ -331,7 +334,7 @@ Two different things are called "prompt caching", and only one of them is built 
 | Frontend | Next.js 16, React 19, TypeScript, plain CSS with light and dark themes |
 | Infrastructure | Terraform, Docker Compose with a Caddy TLS proxy, one Lightsail host |
 | Release | GitHub Actions: checks, build images to ECR, deploy over AWS SSM with GitHub OIDC (no SSH key, no stored AWS keys) |
-| Quality | Ruff with a complexity limit of 5, pytest (201 tests, most run against both stores), Vitest, Bandit, pip-audit, npm audit, gitleaks, `terraform validate` |
+| Quality | Ruff with a complexity limit of 5, pytest (308 tests in 24 files, most run against both stores), Vitest, Bandit, pip-audit, npm audit, gitleaks, `terraform validate` |
 
 ## Repository structure
 
@@ -358,7 +361,7 @@ services/api/                      Python backend
     bootstrap.py                   builds the production container (PostgreSQL, Cognito)
     config.py, params.py           settings, and the .env / SSM source they come from
     observability.py               structured logs with opaque ids only
-  tests/                           201 tests in 18 files; most run against both stores
+  tests/                           308 tests in 24 files; most run against both stores
 apps/web/                          Next.js app
   app/                             routes only: (scientist)/, (admin)/, login, access-denied, api/ (auth, proxy, session)
   components/                      grouped by feature: ui/, layout/, auth/, projects/, runs/, admin/, help/
