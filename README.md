@@ -174,6 +174,118 @@ The allowlist is wider than what runs today. In practice the routes used are sup
 
 **What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for: a missing passage or a second look), so a reviewer can see who asked whom and why. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
 
+## Agent optimizations
+
+How an investigation stays cheap and fast. Every lever is a named constant in one file, [`services/api/bionexus/agents/optimization.py`](services/api/bionexus/agents/optimization.py), so they can be read, tuned and reviewed together. The labels (AO-1 to AO-7) match the code comments and the tests in [`tests/test_agent_optimization.py`](services/api/tests/test_agent_optimization.py).
+
+| # | What we did | Where |
+| --- | --- | --- |
+| **AO-1** | **Only two agents call a model:** literature and the synthesizer. Genetics, pathways and clinical used to call one just to write a summary, and the critic to write a note. Nothing read that text, so the calls were removed. | `agents/base.py`, `agents/critic.py` |
+| **AO-2** | **Small prompts.** A passage is cut to 300 characters. Only a second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
+| **AO-3** | **A cap on direction reading.** A model reads the direction of at most 10 papers. | `agents/literature.py` |
+| **AO-4** | **A cap on synthesis.** The synthesizer uses at most 40 accepted records. | `agents/synthesizer.py` |
+| **AO-5** | **A response cache.** An identical prompt from the same organisation is answered from memory and costs nothing. | `llm/cache.py`, `llm/gateway.py` |
+| **AO-6** | **Specialists in parallel.** Two specialists run at the same time. | `workflow/dispatcher.py` |
+| **AO-7** | **Direction calls in parallel.** Literature's model calls run four at a time, in order. | `agents/literature.py` |
+
+The safety limits sit beside these: a budget is reserved before every model call and enforced per run and per organisation, and the router caps messages and handoff depth. See [`workflow/budget.py`](services/api/bionexus/workflow/budget.py) and [`messaging/router.py`](services/api/bionexus/messaging/router.py).
+
+### The levers
+
+All of them are one block of constants:
+
+```python
+# services/api/bionexus/agents/optimization.py
+AO_PASSAGE_CHARS = 300             # AO-2: how much of a passage a normal prompt carries
+AO_RECHECK_PASSAGE_CHARS = 1500    # AO-2: a second look reads the whole retrieved passage
+AO_MAX_RECHECKS_PER_ROUND = 3      # AO-2: second looks per repair round (each is one model call)
+AO_MAX_DIRECTION_CALLS = 10        # AO-3: papers whose direction a model reads
+AO_MAX_RETAINED_EVIDENCE = 40      # AO-4: records the synthesizer may use
+AO_RESPONSE_CACHE_ENTRIES = 512    # AO-5: answers remembered per process (0 turns the cache off)
+AO_MAX_PARALLEL_SPECIALISTS = 2    # AO-6: specialists running at once
+AO_MAX_PARALLEL_MODEL_CALLS = 4    # AO-7: direction calls running at once
+```
+
+### AO-1: a specialist makes no model call
+
+A specialist's output is the evidence itself, so it searches, applies the eligibility gate and returns. There is no summary call.
+
+```python
+# services/api/bionexus/agents/base.py  (SpecialistAgent.assess)
+found = self._search(state, targets)
+eligible, excluded = partition_eligible(found, state.request.evidence_cutoff)
+if not eligible:
+    return AgentResult(excluded=excluded, abstained=True, assessment="No eligible evidence.")
+return AgentResult(
+    evidence=eligible,
+    excluded=excluded,
+    assessment=f"{len(eligible)} eligible records from {', '.join(self.source_names)}.",
+    outgoing=self.follow_ups(eligible, message, state),
+)
+```
+
+### AO-7: direction calls run together
+
+The direction of each paper is an independent question, so the calls go out together. `pool.map` returns results in the original order, so the evidence list is the same as before.
+
+```python
+# services/api/bionexus/agents/literature.py
+def _with_stances(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
+    """AO-7: the direction calls are independent, so they run together; order is kept."""
+    with ThreadPoolExecutor(max_workers=AO_MAX_PARALLEL_MODEL_CALLS) as pool:
+        return list(pool.map(lambda record: self._with_stance(record, state), records))
+```
+
+The budget stays safe under concurrency: each call reserves its worst-case cost while holding the run's lock, then calls the model outside it.
+
+### AO-5: an identical prompt is paid for once
+
+The model gateway checks the cache before it calls a model. A hit is recorded in the run's call ledger as `cached` with zero tokens and zero cost, so the report's list of model calls stays honest.
+
+```python
+# services/api/bionexus/llm/gateway.py  (ModelGateway.complete)
+binding = self._releases.get(state.release_id).bindings[agent]
+key = self._cache.key(state.tenant_id, binding, prompt)
+cached = self._cache.get(key)
+if cached is not None:
+    self._record_hit(state, agent, cached)   # cost 0, no call used, flagged cached=True
+    return cached.text
+answer = self._ask_chain(state, agent, binding, prompt)
+self._cache.put(key, answer)
+return answer.text
+```
+
+The key decides when an old answer may be reused:
+
+```python
+# services/api/bionexus/llm/cache.py
+@staticmethod
+def key(tenant_id: str, binding: AgentBinding, prompt: str) -> str:
+    parts = [tenant_id, binding.model_chain(), binding.max_output_tokens, binding.temperature]
+    material = json.dumps([*parts, prompt], default=str)
+    return hashlib.sha256(material.encode()).hexdigest()
+```
+
+- **Organisation:** one organisation never receives another's answer.
+- **Model setup:** changing the model, the fallback, the output cap or the temperature changes the key, so an old answer is never reused for a new setup.
+- **Privacy:** only a hash of the prompt is kept, never the prompt.
+- **Bounded:** the cache holds a fixed number of answers and drops the least recently used. It lives in memory, so a restart (including every deploy) empties it.
+
+### Prompt caching, precisely
+
+Two different things are called "prompt caching", and only one of them is built here:
+
+- **Our response cache (AO-5)** returns a stored answer for a prompt we have already sent. It is built, tested, and visible in the ledger.
+- **A provider's own prompt caching** lets the provider reuse the start of a long prompt it has seen before. OpenAI does this automatically for prompts of about 1,000 tokens or more that begin with the same text. Anthropic needs explicit markers. Our prompts put the fixed text first (the agent's instructions, then the question, then the evidence), which is the order a provider's cache needs, but they are much shorter than the minimum today. So we make no claim about a saving from it.
+
+### Not done yet
+
+- The cache is per process and in memory. It is not shared between the API and the worker, and it is emptied on restart.
+- Public source responses are not cached between runs, so every investigation queries the live databases again.
+- A second look still runs one request after another. Only the first direction reads are parallel.
+- A paper is read in its own call. Reading several papers in one call would use fewer calls but changes the prompt, so it needs an evaluation first.
+- There is no speed benchmark yet. The tests prove the calls overlap and keep their order, not how much faster a real run is.
+
 ## Technology
 
 | Layer | Choice |
