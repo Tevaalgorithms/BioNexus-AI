@@ -62,6 +62,8 @@ def run_detail(state: RunState) -> dict:
         "completeness": source_completeness(state),
         "graph_context": state.graph_context,
         "timeline": [timeline_entry(m) for m in state.messages],
+        "analyses": _dump(state.analyses.values()),
+        "verifications": _dump(state.verifications),
     }
 
 
@@ -87,4 +89,5 @@ def timeline_entry(message) -> dict:
         "depth": message.depth,
         "evidence_ids": list(message.evidence_ids),
         "ask": message.payload.get("ask"),  # what a challenge asked for, else None
+        "hint": message.payload.get("text"),  # the extra search a request asked for, else None
     }

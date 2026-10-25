@@ -18,6 +18,7 @@ from bionexus.agents.planner import PlannerAgent
 from bionexus.agents.skills import SkillRegistry
 from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
+from bionexus.agents.verifier import VerifierAgent
 from bionexus.application.admin import AdminService
 from bionexus.application.projects import ProjectService
 from bionexus.application.services import InvestigationService
@@ -154,6 +155,7 @@ def build_agents(deps: AgentDeps) -> tuple[SupervisorAgent, CriticAgent, Synthes
         AgentName.CLINICAL: ClinicalAgent(deps),
         AgentName.CRITIC: critic,
         AgentName.PLANNER: PlannerAgent(deps),
+        AgentName.VERIFIER: VerifierAgent(deps),
     }
     return supervisor, critic, synthesizer, handlers
 
@@ -177,6 +179,7 @@ def build_nodes(storage: Storage, deps: AgentDeps, releases: ReleaseStore) -> tu
     )
     revision = RevisionService(
         synthesizer=synthesizer,
+        verifier=handlers[AgentName.VERIFIER],
         builder=builder,
         reports=storage.reports,
         runs=storage.runs,

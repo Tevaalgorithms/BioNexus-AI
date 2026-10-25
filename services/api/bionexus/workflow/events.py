@@ -1,6 +1,6 @@
 """Sanitised progress events for the scientist timeline. No payloads or reasoning appear."""
 
-from bionexus.contracts.messages import AgentMessage
+from bionexus.contracts.messages import AgentMessage, MessageType
 from bionexus.storage.ports import EventStore
 
 
@@ -19,6 +19,8 @@ class EventPublisher:
         }
         if message.payload.get("ask"):
             data["ask"] = message.payload["ask"]  # a challenge says what it asks for
+        if message.type is MessageType.EVIDENCE_REQUEST:
+            data["hint"] = message.payload.get("text")  # a request says what to search for
         self._store.append(message.run_id, "agent.handoff", data)
 
     def status(self, run_id: str, status: str, reason: str | None = None) -> None:

@@ -9,6 +9,7 @@ truth and the graph checkpoint only needs to remember where the run is.
 from bionexus.agents.critic import CriticAgent, find_issues
 from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
+from bionexus.agents.verifier import apply_verifications
 from bionexus.contracts.errors import InvalidRequest, NoEvidenceFound, RunCancelled
 from bionexus.contracts.investigation import InvestigationStatus
 from bionexus.contracts.messages import AgentMessage, AgentName, MessageType
@@ -134,6 +135,12 @@ class InvestigationNodes:
                 raise InvalidRequest(f"{claim.claim_id} cites unknown evidence")
         state.claims = synthesis.claims
         state.narrative = synthesis.narrative
+
+    def verify(self, state: RunState) -> None:
+        """The verifier checks the findings; whatever the evidence does not support is withheld."""
+        state.verifications = []
+        self._dispatcher.run(state, [self._task(state, AgentName.VERIFIER, {})])
+        apply_verifications(state)
 
     def finalize(self, state: RunState) -> None:
         report = self._reports.save_draft(self._builder.build_draft(state))

@@ -60,6 +60,8 @@ class ReportBuilder:
             "claim_ids": [c.claim_id for c in state.claims],
             "excluded": [e.model_dump() for e in state.excluded],
             "open_issues": [i.description for i in state.issues],
+            "verifications": [v.model_dump(mode="json") for v in state.verifications],
+            "conflict_analyses": [a.model_dump(mode="json") for a in state.analyses.values()],
             "handoffs": len(state.messages),
         }
 
@@ -123,7 +125,27 @@ class ReportBuilder:
     def _limitations_section(state: RunState) -> str:
         issues = [f"- {i.description}" for i in state.issues]
         excluded = [f"- Excluded {e.evidence_id}: {e.reason}" for e in state.excluded]
-        return "## Limitations\n" + "\n".join([*issues, *excluded] or ["- None recorded."])
+        notes = [*issues, *excluded, *ReportBuilder._review_notes(state)]
+        return "## Limitations\n" + "\n".join(notes or ["- None recorded."])
+
+    @staticmethod
+    def _review_notes(state: RunState) -> list[str]:
+        """What the critic explained and the verifier withheld. Model text is labelled."""
+        notes = [
+            f"- Conflict on {a.target} ({a.verdict.value}; model-written, unreviewed): "
+            f"{a.explanation}"
+            for a in state.analyses.values()
+            if a.explanation
+        ]
+        withheld = [v for v in state.verifications if v.verdict.value == "unsupported"]
+        notes += [
+            f"- Withheld by the verifier ({v.subject}): {v.text} Reason: {v.reason}"
+            for v in withheld
+        ]
+        unchecked = sum(v.verdict.value == "unchecked" for v in state.verifications)
+        if unchecked:
+            notes.append(f"- {unchecked} summary sentence(s) could not be checked and were kept.")
+        return notes
 
     @staticmethod
     def _graph_section(state: RunState) -> str:

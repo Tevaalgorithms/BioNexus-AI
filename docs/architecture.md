@@ -80,7 +80,7 @@ sequenceDiagram
     Wk->>Ex: execute(run id)
     Ex->>G: invoke on thread = run id (or resume from its checkpoint)
     loop each step
-        G->>N: scope, recall memory, specialists, critique, retrieve, synthesize, finalize
+        G->>N: scope, recall memory, specialists, coverage, critique, retrieve, synthesize, verify, finalize
         N->>DB: load the run, cancel check
         opt specialists
             N->>Ag: supervisor plans, up to 2 specialists in parallel
@@ -88,8 +88,17 @@ sequenceDiagram
             Ag->>GW: literature reads the direction of papers (parallel, repeats answered from the cache)
             Ag->>Ag: genetics asks pathways for context via the router
         end
+        opt coverage
+            N->>Ag: planner reads counts, asks specialists to search again (evidence.request)
+            Ag->>GW: planner proposes the extra searches
+        end
         opt critique
             N->>Ag: critic challenges literature (missing passage, conflicting direction)
+            Ag->>GW: critic explains each conflict, may request more evidence
+        end
+        opt verify
+            N->>Ag: verifier rebuilds claims and checks the summary
+            Ag->>GW: verifier compares summary sentences with the claims
         end
         N->>DB: save the run, publish a progress event
     end
@@ -137,17 +146,18 @@ sequenceDiagram
 ### The journey of one investigation
 
 An investigation turns a question into a **reviewed draft**. The scientist, not the system, decides what is accepted. The whole run is a LangGraph thread keyed by the run id, so it can be resumed after a crash.
-
 1. **The request arrives.** From the web app or the API, after a project-membership check. The request must name 1 to 5 genes (letters, digits and hyphens, 2 to 15 characters), a disease and a question. The run is saved first, pinned to the active configuration release, and a job is enqueued with an idempotency key, so a double click creates one run.
 2. **A worker picks it up.** It leases the job (`SKIP LOCKED`, five-minute lease, at most three attempts). If the worker dies, the lease expires and another worker resumes the same thread from its last checkpoint without starting a second investigation.
 3. **Scope.** A cheap check that the request is complete.
 4. **Recall reviewed memory.** Evidence this project's scientists already **approved**, for the same genes, still licensed and still before the cutoff, is added to the run. Unreviewed work is never reused, and a remembered conclusion is never counted as a new independent finding.
 5. **Specialists, in parallel (2 at a time).** The supervisor plans fixed tasks for genetics, literature and clinical. Each specialist queries its own sources, then the **eligibility gate** keeps out anything unlicensed, dated after your cutoff or excluded in review, and records why. Genetics then asks the pathways agent for context, but only for genes with genetic support, through the router. If no eligible evidence exists at all, the run ends as `incomplete: no evidence found`. A transient source failure is retried (two retries); a persistent one ends the run as `incomplete`.
-6. **Critique, up to two rounds.** A pure function finds three kinds of issue: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. The critic can act on two of them, and only through the literature agent. For a missing passage from Europe PMC it asks the literature agent to fetch the passage, or to say it cannot. For a gene with a conflict, it asks the literature agent for a **second look** at each direction a model assigned: the agent re-reads the **full** passage (up to 1,500 characters, where the first read saw 300), returns the direction it now finds (supports, opposes or unknown), and the record is relabelled "direction re-checked on the full passage (unreviewed)". At most 3 second looks are sent per round, each record at most once, and none are sent when the run is close to its 40-message cap. Directions that came straight from a database (Open Targets, GWAS) are not re-read, and a gene resting on one study family cannot be repaired, so both stay listed. Each challenge is sent once. Issues still open after the last round are listed in the report.
-7. **Retrieve and rank.** Accepted evidence is indexed (full text plus vectors) and ranked for your question by fusing the two rankings with Reciprocal Rank Fusion. A small evidence graph is expanded at most two hops and 100 edges, only over approved relation types, with tenant and cutoff filters applied in SQL. Connectivity is context, not evidence of mechanism.
-8. **Synthesize.** Claims are written per gene from at most 40 retained, ranked, accepted records, and each claim cites its record ids. A short narrative comes from the configured model. If the narrative contains blocked language (for example "causes", "cures", "should take"), it is replaced by the plain claim list.
-9. **Finalize.** The draft report (Markdown) and its manifest are built, hashed, and saved. Saving the draft twice returns the first, so a retried step cannot create a second report.
-10. **Pause for review.** The graph interrupts and the status becomes `waiting_for_review`. See the approval diagram for what happens next.
+6. **Review coverage.** The planner is shown one line per gene (records per source, and how many independent studies point which way), never the evidence text. It may ask genetics, literature or clinical to search again under another disease name, a gene alias or a qualifier, at most four requests. Each request is a validated hint, answered by a search with no model call, and only evidence the run does not already have is added. If no model is available, no request is made.
+7. **Critique, up to two rounds.** A pure function finds three kinds of issue: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. The critic can act on two of them, and only through the literature agent. For a missing passage from Europe PMC it asks the literature agent to fetch the passage, or to say it cannot. For a gene with a conflict, it asks the literature agent for a **second look** at each direction a model assigned: the agent re-reads the **full** passage (up to 1,500 characters, where the first read saw 300), returns the direction it now finds (supports, opposes or unknown), and the record is relabelled "direction re-checked on the full passage (unreviewed)". At most 3 second looks are sent per round, each record at most once, and none are sent when the run is close to its 40-message cap. Directions that came straight from a database (Open Targets, GWAS) are not re-read, and a gene resting on one study family cannot be repaired, so both stay listed. Each challenge is sent once. Issues still open after the last round are listed in the report. Then a model reads each conflicted gene's supporting and opposing studies, with their ancestry and assay context, and says whether the conflict looks real, could be explained, or is unclear. That explanation is unreviewed. The model may also ask one specialist for one more search. Each conflict is explained once, and if no model is available the step is skipped.
+8. **Retrieve and rank.** Accepted evidence is indexed (full text plus vectors) and ranked for your question by fusing the two rankings with Reciprocal Rank Fusion. A small evidence graph is expanded at most two hops and 100 edges, only over approved relation types, with tenant and cutoff filters applied in SQL. Connectivity is context, not evidence of mechanism.
+9. **Synthesize.** Claims are written per gene from at most 40 retained, ranked, accepted records, and each claim cites its record ids. A short narrative comes from the configured model. If the narrative contains blocked language (for example "causes", "cures", "should take"), it is replaced by the plain claim list.
+10. **Verify.** The verifier rebuilds every claim from the evidence it cites, and withholds a claim that does not match, cites evidence the run does not have, or cites evidence that is no longer accepted. A model then compares each sentence of the summary with the claims; a sentence that adds, strengthens or states something the claims do not is withheld. A sentence that is a claim word for word needs no model, and a sentence the model could not judge is kept and marked unchecked. Withheld items are listed in the report's limitations.
+11. **Finalize.** The draft report (Markdown) and its manifest are built, hashed, and saved. Saving the draft twice returns the first, so a retried step cannot create a second report.
+12. **Pause for review.** The graph interrupts and the status becomes `waiting_for_review`. See the approval diagram for what happens next.
 
 **Example numbers.** In one live run on 24 October 2026 (COVID-19, ACE2 and TMPRSS2, about 20 seconds), BioNexus collected 44 records. They were 39 distinct study families once repeats were merged, nine more records were set aside for licence reasons, and 8 findings pointed to an association. They illustrate the mechanics; live results change with the databases.
 
@@ -165,11 +175,14 @@ An investigation turns a question into a **reviewed draft**. The scientist, not 
 | Router | `MessageRouter.accept()` | `messaging/router.py` |
 | Eligibility | `partition_eligible()` | `evidence/eligibility.py` |
 | Sources | `GuardedHttp`, the six `*Source` classes | `sources/http.py`, `sources/live/` (one module per source) |
-| 6 Critique | `find_issues()`, `CriticAgent.handle()` | `agents/critic.py` |
-| 7 Retrieve | `RetrievalService.search()` and `.expand()`, `fuse()` | `retrieval/service.py`, `retrieval/fusion.py` |
-| 8 Synthesize | `SynthesizerAgent.write()`, `build_matrix()` | `agents/synthesizer.py`, `evidence/matrix.py` |
-| 9 Report | `ReportBuilder.build_draft()` | `reporting/builder.py` |
-| 10 Review | `await_review` node, `ReviewService.approve()`, `RevisionService` | `workflow/graph.py`, `reporting/review.py`, `reporting/revision.py` |
+| 6 Coverage | `PlannerAgent.handle()`, `InvestigationNodes.coverage()` | `agents/planner.py`, `workflow/nodes.py` |
+| Evidence requests | `SpecialistAgent.answer_request()`, `clean_hint()` | `agents/base.py`, `contracts/hints.py` |
+| 7 Critique | `find_issues()`, `CriticAgent.handle()`, `read_analysis()` | `agents/critic.py`, `agents/conflict.py` |
+| 8 Retrieve | `RetrievalService.search()` and `.expand()`, `fuse()` | `retrieval/service.py`, `retrieval/fusion.py` |
+| 9 Synthesize | `SynthesizerAgent.write()`, `build_matrix()` | `agents/synthesizer.py`, `evidence/matrix.py` |
+| 10 Verify | `VerifierAgent.verify()`, `apply_verifications()` | `agents/verifier.py` |
+| 11 Report | `ReportBuilder.build_draft()` | `reporting/builder.py` |
+| 12 Review | `await_review` node, `ReviewService.approve()`, `RevisionService` | `workflow/graph.py`, `reporting/review.py`, `reporting/revision.py` |
 | Models | `ModelGateway.complete()`, `LangChainClient` | `llm/gateway.py`, `llm/langchain_client.py` |
 | Budget | `Budget.reserve()` and `.settle()` | `workflow/budget.py` |
 

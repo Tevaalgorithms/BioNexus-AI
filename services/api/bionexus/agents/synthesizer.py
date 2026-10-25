@@ -33,28 +33,29 @@ def language_violations(text: str) -> list[str]:
     return [phrase for phrase in BLOCKED_PHRASES if phrase in lowered]
 
 
+def make_claim(row: MatrixRow, disease: str) -> Claim:
+    """The claim for one gene, written from its counts. The verifier rebuilds it the same way."""
+    text = (
+        f"{row.target} and {disease} (independent study families): "
+        f"{row.supporting_families} supporting, {row.opposing_families} opposing, "
+        f"{row.unknown_families} with no stated direction."
+    )
+    return Claim(
+        claim_id=f"claim-{row.target}",
+        text=text,
+        stance=row.net_stance,
+        evidence_ids=row.evidence_ids,
+    )
+
+
 class SynthesizerAgent(Agent):
     name: ClassVar[AgentName] = AgentName.SYNTHESIZER
     skill_id: ClassVar[str] = "report.synthesize"
 
     def write(self, state: RunState) -> Synthesis:
         rows = build_matrix(retained_evidence(state))
-        claims = [self._claim(row, state.request.disease) for row in rows]
+        claims = [make_claim(row, state.request.disease) for row in rows]
         return Synthesis(claims=claims, narrative=self._narrative(state, claims))
-
-    @staticmethod
-    def _claim(row: MatrixRow, disease: str) -> Claim:
-        text = (
-            f"{row.target} and {disease} (independent study families): "
-            f"{row.supporting_families} supporting, {row.opposing_families} opposing, "
-            f"{row.unknown_families} with no stated direction."
-        )
-        return Claim(
-            claim_id=f"claim-{row.target}",
-            text=text,
-            stance=row.net_stance,
-            evidence_ids=row.evidence_ids,
-        )
 
     def _narrative(self, state: RunState, claims: list[Claim]) -> str:
         draft = self.ask_model(state, "Summarise: " + " ".join(c.text for c in claims))

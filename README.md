@@ -23,7 +23,7 @@ In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 secon
 ## What it does
 
 - **Investigations** are durable: they survive a worker restart and resume at the exact step.
-- **Seven agents, one job each:** a supervisor that plans, genetics, literature, pathways and clinical specialists, a critic and a synthesizer. They talk only through a recorded, allowlisted message router.
+- **Nine agents, one job each:** a supervisor, a planner, genetics, literature, pathways and clinical specialists, a critic, a verifier and a synthesizer. Five use an AI model where a judgement is needed. They talk only through a recorded, allowlisted message router.
 - **Six live sources:** Open Targets, GWAS Catalog, Europe PMC, Reactome, Monarch and ClinicalTrials.gov, reached through a guarded HTTP client (host allowlist, HTTPS only, timeouts, bounded retries, size cap). These are BioNexus adapters, not MCP servers.
 - **Evidence you can check:** only licensed evidence dated before your cutoff and backed by a passage can be cited.
 - **A human gate:** the run pauses for review. A scientist can exclude evidence, regenerate the draft, and approve one version by its content hash.
@@ -59,8 +59,10 @@ graph TB
     subgraph AGENTS["Agent team (own message router)"]
         SUP["Supervisor"]
         SPEC["Genetics · Literature · Pathways · Clinical"]
+        PLAN["Planner"]
         CRIT["Critic"]
         SYN["Synthesizer"]
+        VER["Verifier"]
     end
 
     SQL[("PostgreSQL 16 + pgvector<br/>runs · jobs · reports · audit · memory<br/>projects · releases · checkpoints · search index")]
@@ -100,19 +102,25 @@ More detail, with sequence diagrams of sign-in, a run and the review step, and a
 
 ### The agents
 
+Nine agents, each with one job. Five use an AI model where a judgement is needed; four are plain code.
+
 | Agent | Job | What it uses a model for |
 | --- | --- | --- |
-| **Supervisor** | Plans the run. It starts genetics, literature and clinical every time; which agents run is never left to a model. | Nothing |
-| **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. | Nothing |
-| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. | Reading the direction of papers that state none, and second looks |
+| **Supervisor** | Plans the run. It starts genetics, literature and clinical, then hands the run to the planner, the critic and the verifier at the right steps. Which agents run is never left to a model. | Nothing |
+| **Planner** | After the first pass it reads a counts-only table (records per gene and source) and may ask genetics, literature or clinical to search again under another disease name, gene alias or qualifier, at most 4 requests. It never sees the evidence text and cannot add or judge evidence. | Proposing the extra searches |
+| **Genetics** | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. Answers requests for more evidence. | Nothing |
+| **Literature** | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence. | Reading the direction of papers that state none, and second looks |
 | **Pathways** | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Nothing |
-| **Clinical** | Registered trials from ClinicalTrials.gov. | Nothing |
-| **Critic** | Finds three kinds of problem with plain code: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It then asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. | Nothing |
+| **Clinical** | Registered trials from ClinicalTrials.gov. Answers requests for more evidence. | Nothing |
+| **Critic** | Plain code finds three kinds of problem: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. A model then reads each conflict and says whether it looks real or could be explained (for example by ancestry or assay), and may ask a specialist for more evidence. | Explaining conflicts, and asking for more evidence |
+| **Verifier** | Checks the findings before the report is built. Plain code rebuilds each claim from the evidence it cites. A model compares each sentence of the summary with the claims. Anything unsupported is withheld and listed; anything that could not be checked is kept and marked. | Comparing summary sentences with the claims |
 | **Synthesizer** | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | The short summary narrative |
 
-**Which model?** It is not fixed in the code. Each agent is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per agent in **Agents & models**, so the synthesizer can use a different model from the specialists. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only literature and the synthesizer call a model, so those two are the only bindings that matter. The other agents are plain code and keep a binding only because every release lists all seven; the admin console shows them as "not used".
+**Which model?** It is not fixed in the code. Each agent is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per agent in **Agents & models**, so the synthesizer can use a different model from the planner. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only the five AI-assisted agents need a binding; the others keep one because every release lists all nine, and the admin console shows them as "not used". A release saved before an upgrade gains the new agents automatically, as a new release, and its history is kept.
 
-Each agent has an approved, versioned, hashed instruction file in `skills/`. The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+Each agent has an approved, versioned, hashed instruction file in `skills/` (the critic has two: one to find problems, one to explain conflicts). The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+
+**Model text is untrusted.** A reply is read defensively: a bad answer is treated as no answer. A verdict outside the allowed ones becomes "unclear", an explanation with causal or treatment wording is dropped, and a requested search is used only if it passes the checks below. If no model is available, the step is skipped, not failed, and the report says what was and was not checked.
 
 ### The flow
 
@@ -127,14 +135,20 @@ flowchart TB
     LIT --> EV
     CLI --> EV
     PATH --> EV
-    EV --> CRIT["Critic<br/>missing passages · contradictions<br/>single-study support"]
-    CRIT -- "evidence.challenge: missing passage, or a<br/>second look at a conflicting direction<br/>repair loop, at most 2 rounds" --> LIT
+    EV --> PLAN["Planner<br/>reads counts, not evidence<br/>asks for more searches"]
+    PLAN -- "evidence.request<br/>another name or qualifier<br/>at most 4" --> GEN
+    PLAN -- "evidence.request" --> LIT
+    PLAN -- "evidence.request" --> CLI
+    PLAN --> CRIT["Critic<br/>missing passages · conflicts · single-study support<br/>explains each conflict"]
+    CRIT -- "evidence.challenge: a passage or a second look<br/>evidence.request: more evidence<br/>repair loop, at most 2 rounds" --> LIT
+    CRIT -- "evidence.request" --> GEN
     CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
     RANK --> SYN["Synthesizer<br/>claims from accepted evidence only"]
-    SYN --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
+    SYN --> VER["Verifier<br/>rebuilds claims by code<br/>checks each summary sentence<br/>withholds what is unsupported"]
+    VER --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
 ```
 
-Up to two specialists run at the same time. The workflow, not an agent, calls the synthesizer after ranking.
+Up to two specialists run at the same time. The workflow, not an agent, calls the synthesizer after ranking, and it hands the run to the planner and the verifier at their steps.
 
 ### Agent-to-agent communication
 
@@ -145,34 +159,47 @@ sequenceDiagram
     participant S as Supervisor
     participant G as Genetics
     participant P as Pathways
+    participant PL as Planner
     participant C as Critic
     participant L as Literature
+    participant V as Verifier
     S->>G: task.request (genes)
     G-->>S: task.result
     G->>P: task.request (supported genes only)
     P-->>G: task.result
+    S->>PL: task.request (review coverage)
+    PL->>L: evidence.request (another disease name)
+    L-->>PL: task.result (the new papers)
+    PL-->>S: task.result
     S->>C: task.request (repair round)
     C->>L: evidence.challenge (supply the supporting passage)
     L-->>C: task.result (the passage, or "not found")
     C->>L: evidence.challenge (re-check a conflicting direction)
     L-->>C: task.result (the re-read direction)
+    C->>G: evidence.request (for example, another ancestry)
+    G-->>C: task.result (the new records)
+    C-->>S: task.result (conflicts explained)
+    S->>V: task.request (verify the findings)
+    V-->>S: task.result (what was withheld)
 ```
 
-**The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are four types: `task.request`, `task.result`, `evidence.challenge` and `task.failed`. The router accepts `task.failed` as a reply, but no agent sends it today: a failing step ends the run honestly instead (incomplete or failed).
+**The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are five types: `task.request`, `task.result`, `evidence.challenge`, `evidence.request` and `task.failed`. The router accepts `task.failed` as a reply, but no agent sends it today: a failing step ends the run honestly instead (incomplete or failed).
+
+**What a request may carry.** An `evidence.request` asks a specialist to search again with one hint: another name for the disease, an alias for a gene, or a short qualifier. A hint comes from a model, so it is checked before use (`contracts/hints.py`): 2 to 60 characters, letters, digits and a little punctuation, and never a quote or a query operator. Europe PMC, ClinicalTrials.gov and GWAS use a hint to widen their query; the other sources ignore it. The specialist answers with a search, so a request costs no model call, and only evidence the run does not already have is added.
 
 **What the router enforces** (`messaging/router.py`):
 
 | Rule | Detail |
 | --- | --- |
-| Allowlist | Supervisor may message every other agent. Genetics may message pathways. The critic may message the four specialists. Anything else is rejected. |
+| Allowlist | Supervisor may message every other agent. Genetics may message pathways. The critic and the planner may message the four specialists. Anything else is rejected. |
 | Replies | A `task.result` or `task.failed` is accepted only as an answer to a message that was addressed to the sender. |
 | Depth cap | A chain of handoffs may be at most 3 deep. |
-| Volume cap | At most 40 messages per run. |
+| Volume cap | At most 60 messages per run. The planner and the critic check the room left before sending, so the cap is never what ends a run. |
 | No duplicates | A message with the same idempotency key (sender, recipient, type and payload) is dropped, so a retry never repeats work. |
 
-The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists and to the critic, genetics to pathways, and critic to literature.
+The allowlist is wider than what runs today. In practice the routes used are supervisor to the three specialists, the planner, the critic and the verifier; genetics to pathways; the planner and the critic to genetics, literature and clinical; and the critic to literature.
 
-**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for: a missing passage or a second look), so a reviewer can see who asked whom and why. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
+**What is recorded.** Every accepted message is stored with the run, and each handoff appears in the live activity feed and the run's handoffs table (from, to, type, and for a challenge what it asked for, or for a request what to search for), so a reviewer can see who asked whom and why. Agents share no hidden memory: the only shared state is the run record, and evidence enters a model prompt only inside a delimited data block, never as instructions.
 
 ## Agent optimizations
 
@@ -180,13 +207,16 @@ How an investigation stays cheap and fast. Every lever is a named constant in on
 
 | # | What we did | Where |
 | --- | --- | --- |
-| **AO-1** | **Only two agents call a model:** literature and the synthesizer. Genetics, pathways and clinical used to call one just to write a summary, and the critic to write a note. Nothing read that text, so the calls were removed. | `agents/base.py`, `agents/critic.py` |
+| **AO-1** | **Only agents that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `agents/base.py`, `agents/critic.py` |
 | **AO-2** | **Small prompts.** A passage is cut to 300 characters. Only a second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
 | **AO-3** | **A cap on direction reading.** A model reads the direction of at most 10 papers. | `agents/literature.py` |
 | **AO-4** | **A cap on synthesis.** The synthesizer uses at most 40 accepted records. | `agents/synthesizer.py` |
 | **AO-5** | **A response cache.** An identical prompt from the same organisation is answered from memory and costs nothing. | `llm/cache.py`, `llm/gateway.py` |
 | **AO-6** | **Specialists in parallel.** Two specialists run at the same time. | `workflow/dispatcher.py` |
 | **AO-7** | **Direction calls in parallel.** Literature's model calls run four at a time, in order. | `agents/literature.py` |
+| **AO-8** | **The planner reads counts, not evidence.** It sees one line per gene and may ask for at most 4 extra searches, once per run. A request is answered by a search, not a model call. | `agents/planner.py` |
+| **AO-9** | **Each conflict is explained once.** The critic shows the model at most 4 records per side and explains at most 3 conflicts per round. | `agents/critic.py`, `agents/conflict.py` |
+| **AO-10** | **The verifier checks claims with plain code.** A summary sentence that is a claim word for word needs no model call, and at most 8 other sentences are checked. | `agents/verifier.py` |
 
 The safety limits sit beside these: a budget is reserved before every model call and enforced per run and per organisation, and the router caps messages and handoff depth. See [`workflow/budget.py`](services/api/bionexus/workflow/budget.py) and [`messaging/router.py`](services/api/bionexus/messaging/router.py).
 
@@ -204,6 +234,10 @@ AO_MAX_RETAINED_EVIDENCE = 40      # AO-4: records the synthesizer may use
 AO_RESPONSE_CACHE_ENTRIES = 512    # AO-5: answers remembered per process (0 turns the cache off)
 AO_MAX_PARALLEL_SPECIALISTS = 2    # AO-6: specialists running at once
 AO_MAX_PARALLEL_MODEL_CALLS = 4    # AO-7: direction calls running at once
+AO_MAX_PLANNER_REQUESTS = 4        # AO-8: extra searches the planner may ask for, once per run
+AO_MAX_CONFLICT_ANALYSES = 3       # AO-9: conflicts the critic explains per round (one call each)
+AO_MAX_CONFLICT_RECORDS = 4        # AO-9: records shown to the model per side of a conflict
+AO_MAX_VERIFIED_SENTENCES = 8      # AO-10: summary sentences the verifier checks with a model
 ```
 
 ### AO-1: a specialist makes no model call
@@ -374,6 +408,16 @@ Open `http://localhost:3100`. **Scientist sign-in** and **Admin sign-in** each u
 
 **A real AI model (optional).** Put a provider key in `.env` (never in a committed file), then use the admin console: **Model registry, Add model**. Give the provider, model id, key name, prices and the date you verified them. A model without a verified price is refused, and a new model must pass a capped smoke test first. Prices in `config/models.example.json` are placeholders on purpose. See [`docs/configuration.md`](docs/configuration.md).
 
+**See what each review step changes.** With a real model, run the same question with the planner, the critic and the verifier each switched off, and compare what was found, requested, explained and withheld, and what it cost. It shows behaviour, not accuracy; accuracy needs a scientist-written question set.
+
+```bash
+cd services/api
+../../.venv/bin/python -m bionexus.evals.ablation --disease "Crohn's disease" --genes NOD2,IL23R --live \
+    --provider openai --model gpt-4o-mini --input-price 0.15 --output-price 0.60 --price-date 2026-10-24
+```
+
+Use prices you have checked. The key is read by name from your `.env`, never from the command line.
+
 ## Deploy
 
 Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, pushes them to ECR and deploys to the Lightsail host through AWS Systems Manager, then checks the public URL. A failed health check rolls back to the previous release. The monthly cost is about US$12 to 16 for AWS, with model charges separate ([`docs/costs.md`](docs/costs.md)). Steps and rollback are in [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md). Every setting, and where it comes from, is in [`docs/configuration.md`](docs/configuration.md).
@@ -381,7 +425,7 @@ Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, push
 ## Limits and honest caveats
 
 - **Synthetic demo evidence.** The offline sample and the evaluation reference set are made up. They show the mechanics work, not accuracy on real research.
-- **No verified live AI-model run yet.** The model path is tested with fakes and the admin smoke test. A real model has not yet been run end to end.
+- **The newest agents are tested for behaviour, not accuracy.** The planner, the critic's explanations and the verifier are tested with scripted models and sources: requests, limits, validation, fallbacks and the report are proven. Whether they improve results on real research has not been measured. `python -m bionexus.evals.ablation` runs the product with each step switched off and on, with a real model, so you can compare.
 - **The multi-agent design is not shown to beat a simpler one.** On the tiny offline set a single-agent baseline matches the team. Answering that needs a scientist-written locked question set and real models.
 - **Direction can be wrong.** Literature direction comes from a model reading an abstract and is labelled unreviewed. Database associations are not proof. Only a scientist's review makes a finding reliable.
 - **Source rights are conservative defaults, not legal advice.** For example only open-access Europe PMC articles are reusable.

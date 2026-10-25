@@ -27,6 +27,17 @@ def parse_stance(answer: str) -> Stance:
     return {"supports": Stance.SUPPORTS, "opposes": Stance.OPPOSES}.get(verdict, Stance.UNKNOWN)
 
 
+def _needs_direction(record: EvidenceRecord) -> bool:
+    """Only a paper that states no direction, and has a passage to read, is sent to a model."""
+    return record.stance is Stance.UNKNOWN and bool(record.passage)
+
+
+def _directions_read(state: RunState) -> int:
+    """How many papers this run has already had read (first read, or re-checked)."""
+    marks = (MODEL_STANCE_NOTE, RECHECKED_NOTE)
+    return sum(any(m in r.context for m in marks) for r in state.evidence.values())
+
+
 class LiteratureAgent(SpecialistAgent):
     name: ClassVar[AgentName] = AgentName.LITERATURE
     skill_id: ClassVar[str] = "literature.assess"
@@ -44,8 +55,13 @@ class LiteratureAgent(SpecialistAgent):
         return result
 
     def _classified(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
-        read, unread = records[:AO_MAX_DIRECTION_CALLS], records[AO_MAX_DIRECTION_CALLS:]
-        return [*self._with_stances(read, state), *unread]
+        """Read the direction of papers that state none, up to a limit for the whole run (AO-3)."""
+        todo = [r for r in records if _needs_direction(r)]
+        quota = max(0, AO_MAX_DIRECTION_CALLS - _directions_read(state))
+        chosen = {r.evidence_id for r in todo[:quota]}
+        read = self._with_stances([r for r in records if r.evidence_id in chosen], state)
+        by_id = {r.evidence_id: r for r in read}
+        return [by_id.get(r.evidence_id, r) for r in records]
 
     def _with_stances(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
         """AO-7: the direction calls are independent, so they run together; order is kept."""
@@ -54,7 +70,7 @@ class LiteratureAgent(SpecialistAgent):
 
     def _with_stance(self, record: EvidenceRecord, state: RunState) -> EvidenceRecord:
         """Only sources that give no direction are classified, from the passage, with a model."""
-        if record.stance is not Stance.UNKNOWN or not record.passage:
+        if not _needs_direction(record):
             return record
         answer = self.ask_model(state, STANCE_QUESTION + evidence_block([record]))
         context = f"{record.context}; {MODEL_STANCE_NOTE}"

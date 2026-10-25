@@ -3,7 +3,7 @@
     scope -> recall_memory -> specialists -> coverage -> critique <-+  (repair loop, max 2 rounds)
                                                             |       |
                                                             +-------+
-    critique -> retrieve -> synthesize -> finalize
+    critique -> retrieve -> synthesize -> verify -> finalize
              -> await_review (human interrupt) -> complete
 
 What LangGraph is used for here: the explicit graph shape, the bounded repair loop, retry of
@@ -61,7 +61,8 @@ LINEAR_EDGES = [
     ("specialists", "coverage"),
     ("coverage", "critique"),
     ("retrieve", "synthesize"),
-    ("synthesize", "finalize"),
+    ("synthesize", "verify"),
+    ("verify", "finalize"),
     ("finalize", "await_review"),
     ("await_review", "complete"),
     ("complete", END),
@@ -76,6 +77,10 @@ class InvestigationGraph:
     def _coverage(self, state: RunState, gs: GraphState) -> None:
         if "coverage" not in self._disabled:
             self._nodes.coverage(state)
+
+    def _verify(self, state: RunState, gs: GraphState) -> None:
+        if "verify" not in self._disabled:
+            self._nodes.verify(state)
 
     def _critique(self, state: RunState, gs: GraphState) -> dict:
         round_number = gs.get("repair_round", 0)
@@ -113,6 +118,7 @@ class InvestigationGraph:
             "critique": self._critique,
             "retrieve": lambda s, gs: n.retrieve(s),
             "synthesize": lambda s, gs: n.synthesize(s),
+            "verify": self._verify,
             "finalize": lambda s, gs: n.finalize(s),
         }
 

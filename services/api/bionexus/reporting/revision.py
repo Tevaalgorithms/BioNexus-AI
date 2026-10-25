@@ -2,6 +2,7 @@
 
 from bionexus.agents.critic import find_issues
 from bionexus.agents.synthesizer import SynthesizerAgent
+from bionexus.agents.verifier import VerifierAgent
 from bionexus.contracts.errors import Conflict, InvalidRequest
 from bionexus.contracts.evidence import Exclusion
 from bionexus.contracts.investigation import InvestigationStatus
@@ -25,6 +26,7 @@ class RevisionService:
         self,
         *,
         synthesizer: SynthesizerAgent,
+        verifier: VerifierAgent,
         builder: ReportBuilder,
         reports: ReportRepository,
         runs: RunStore,
@@ -32,6 +34,7 @@ class RevisionService:
         audit: AuditStore,
     ) -> None:
         self._synthesizer = synthesizer
+        self._verifier = verifier
         self._builder = builder
         self._reports = reports
         self._runs = runs
@@ -51,6 +54,7 @@ class RevisionService:
         state.issues = find_issues(list(state.evidence.values()))
         synthesis = self._synthesizer.write(state)
         state.claims, state.narrative = synthesis.claims, synthesis.narrative
+        self._verifier.review(state)  # a regenerated draft is verified like the first one
         draft = self._new_draft(state)
         self._audit.record(
             reviewer, "evidence.excluded", f"{state.run_id}: {evidence_ids} ({reason})"

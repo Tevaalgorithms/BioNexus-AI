@@ -92,6 +92,22 @@ def test_direction_calls_are_capped(state):
     assert len(unread) == 2  # the papers beyond the cap keep "no stated direction"
 
 
+def test_direction_reads_are_capped_for_the_whole_run_not_each_request(state):
+    from bionexus.evidence.stance import MODEL_STANCE_NOTE
+
+    already = [
+        paper(n).model_copy(update={"context": f"c; {MODEL_STANCE_NOTE}"})
+        for n in range(AO_MAX_DIRECTION_CALLS - 2)
+    ]
+    state.add_evidence(already)  # the run has already read most of its allowance
+    gateway = CountingGateway()
+    fresh = [paper(100 + n) for n in range(5)]
+    result = literature(gateway)._classified(fresh, state)
+    assert len(gateway.prompts) == 2  # only what is left
+    assert sum(r.stance is Stance.UNKNOWN for r in result) == 3  # the rest keep "no direction"
+    assert [r.evidence_id for r in result] == [r.evidence_id for r in fresh]  # order is kept
+
+
 # AO-7: the direction calls run together -------------------------------------------------------
 
 

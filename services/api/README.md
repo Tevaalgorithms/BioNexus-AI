@@ -1,6 +1,6 @@
 # BioNexus API (`services/api`)
 
-The Python backend: FastAPI routes, the seven agents, the LangGraph investigation workflow, the model
+The Python backend: FastAPI routes, the nine agents, the LangGraph investigation workflow, the model
 gateway and PostgreSQL storage. The web app (`apps/web`) is the only client; it talks to this service
 over HTTP and shares no code with it.
 
