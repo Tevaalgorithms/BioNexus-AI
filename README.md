@@ -8,29 +8,29 @@ BioNexus is an evidence-review assistant for drug-target research. A scientist n
 
 ## Why this exists
 
-Every new medicine starts with a **target**, a gene or protein that plays a part in a disease. Picking the wrong one is a common reason drugs fail in human trials, and clues from people's own genes are one of the best early signs that a target is right. Before a team spends lab time, someone has to answer: *how many independent studies really back this gene-disease link?* That answer is scattered across databases and papers, the same study turns up in several places, and a long list of hits looks like proof when it often is not.
+Every new medicine starts with a **target**, a gene or protein involved in a disease. Picking the wrong one is a common reason drugs fail in human trials. Before lab time is spent, someone has to answer: *how many independent studies really back this gene-disease link?* The answer is scattered across databases and papers, the same study appears in several places, and a long list of hits looks like proof when it often is not.
 
-BioNexus adds four things a plain literature search or a generic chatbot does not:
+BioNexus adds four things a plain search or a chatbot does not:
 
-1. **Independent studies are counted once.** The same study seen through several databases is one `study_family`.
-2. **Direction is explicit.** A finding supports, opposes, or states no direction. Trial registrations and pathway annotations never count as support.
-3. **Gaps and conflicts are shown.** A critic flags contradictions and missing passages, and every excluded record is listed with its reason.
-4. **A person decides, and the record is reproducible.** A scientist approves an exact report version, and the report names the models, skills and data versions behind it.
+1. **Independent studies are counted once.** One `study_family`, however many databases show it.
+2. **Direction is explicit.** A finding supports, opposes or states none. Trial registrations and pathway annotations never count as support.
+3. **Gaps and conflicts are shown,** and every excluded record is listed with its reason.
+4. **A person decides, and it is reproducible.** A scientist approves one exact version, and the report names the models, skills and data versions behind it.
 
-In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 seconds), 44 records came back. They were 39 distinct studies once repeats were merged, and only 8 findings pointed to an association. The rest was context such as trial registrations. Numbers change as the databases change.
+In one live run (24 October 2026, COVID-19 with ACE2 and TMPRSS2, about 20 seconds), 44 records were 39 distinct studies, and only 8 findings pointed to an association. Numbers change as the databases change.
 
 ## What it does
 
-- **Investigations** are durable: they survive a worker restart and resume at the exact step.
-- **Nine roles, one job each:** a coordinator (the supervisor), four source specialists (genetics, literature, pathways, clinical) and four AI reviewers (planner, critic, verifier, synthesizer). Five roles use an AI model where a judgement is needed. They talk only through a recorded, allowlisted message router.
-- **Six live sources:** Open Targets, GWAS Catalog, Europe PMC, Reactome, Monarch and ClinicalTrials.gov, reached through a guarded HTTP client (host allowlist, HTTPS only, timeouts, bounded retries, size cap). These are BioNexus adapters, not MCP servers.
-- **Evidence you can check:** only licensed evidence dated before your cutoff and backed by a passage can be cited.
-- **A human gate:** the run pauses for review. A scientist can exclude evidence, regenerate the draft, and approve one version by its content hash.
-- **Reports** in Markdown, Word and a JSON manifest with the configuration release, skill hashes and every model call.
-- **Project spaces:** a private workspace per disease or study. Reviewed evidence is reused only inside the project where it was approved.
-- **Admin console:** invite scientists and admins by email (Cognito sends the temporary password), add or retire AI models at runtime, change which model each role uses (validate, evaluate, activate, roll back), usage and cost, source health, skills, an audit log and an emergency stop.
-- **Spending caps:** per-run and per-organisation model budgets, reserved before each call.
-- **Configuration:** a git-ignored `.env` locally, AWS SSM Parameter Store in production. No secret is in the code.
+- **Durable investigations:** they survive a worker restart and resume at the exact step.
+- **Nine roles, one job each** (see [the roles](#the-roles)). They talk only through a recorded, allowlisted message router.
+- **Six live sources:** Open Targets, GWAS Catalog, Europe PMC, Reactome, Monarch and ClinicalTrials.gov, through a guarded HTTP client (host allowlist, HTTPS only, timeouts, size cap). These are BioNexus adapters, not MCP servers.
+- **Evidence you can check:** only licensed, pre-cutoff evidence backed by a passage can be cited.
+- **A human gate:** exclude evidence, regenerate the draft, approve one version by its content hash.
+- **Reports** in Markdown, Word and a JSON manifest (release, skill hashes, every model call).
+- **Project spaces:** a private workspace per disease or study. Reviewed evidence is reused only inside it.
+- **Admin console:** invite users by email, manage models and per-role bindings, usage and cost, source health, audit log, emergency stop.
+- **Spending caps** per run and per organisation, reserved before each call.
+- **Configuration:** a git-ignored `.env` locally, AWS SSM in production. No secret is in the code.
 
 ## Architecture
 
@@ -91,11 +91,11 @@ graph TB
     classDef planned stroke-dasharray: 5 5,stroke:#888
 ```
 
-**LangGraph and LangChain, used narrowly.** LangGraph runs the investigation: the graph shape, the bounded repair loop, retries, PostgreSQL checkpoints and the human-review interrupt. It holds only control data. The investigation itself is stored in your own tables, so the API, UI and audit log read one source of truth. LangChain provides one thing: provider-neutral chat models (`ChatAnthropic`, `ChatOpenAI`) behind our own `ModelClient` port. Approved-model checks, budgets, fallback and the call ledger sit around it in the gateway. No LangChain agents, chains, tools, retrievers or memory.
+**LangGraph and LangChain, used narrowly.** LangGraph runs the investigation: graph shape, bounded repair loop, retries, PostgreSQL checkpoints and the review interrupt. It holds only control data; the investigation lives in your own tables. LangChain supplies only provider-neutral chat models behind our own `ModelClient` port, with budgets, fallback and the call ledger around it in the gateway. No LangChain agents, chains, tools, retrievers or memory.
 
-**What leaves your machine.** In demo mode nothing does. In live mode, disease and gene names go to the six public APIs. With a real AI model configured, the question and evidence text (passages shortened to 300 characters inside a delimited data block; a second look sends up to 1,500) go to that model's provider.
+**What leaves your machine.** Demo mode: nothing. Live mode: disease and gene names go to the six public APIs. With a real model configured, the question and evidence text (passages cut to 300 characters; a second look up to 1,500) go to that model's provider.
 
-More detail, with sequence diagrams of sign-in, a run and the review step, and a map from each step to its code, is in [`docs/architecture.md`](docs/architecture.md).
+Sequence diagrams and a step-to-code map: [`docs/architecture.md`](docs/architecture.md).
 
 ## The team and how it talks
 
@@ -117,7 +117,7 @@ Nine roles, each with one job. Five call an AI model where a judgement is needed
 
 Each role in full: [`docs/architecture.md`](docs/architecture.md#the-roles-in-detail).
 
-**Which model?** Not fixed in the code. The active configuration release binds each model-using role to a model, with an optional fallback. An admin changes it in **Team & models**, and every change is validated and saved as a new release. Locally the models are placeholders, so the demo needs no key. Each role has a versioned, hashed instruction file in `skills/` that the release pins, and a role cannot edit its own.
+**Which model?** An admin binds each model-using role to a model in **Team & models**, and every change is validated and saved as a new release. Locally the models are placeholders, so the demo needs no key. Each role's instructions are a versioned, hashed file in `skills/`.
 
 **Model text is untrusted.** A bad reply counts as no answer, causal or treatment wording is dropped, and if no model is available the step is skipped and the report says what was not checked.
 
