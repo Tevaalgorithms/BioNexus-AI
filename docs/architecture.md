@@ -4,6 +4,38 @@ The detail behind the [README](../README.md): the possible outcomes of a run, th
 code does each step. File names are relative to `services/api/bionexus/`. See also
 [`services/api/README.md`](../services/api/README.md) and [`apps/web/README.md`](../apps/web/README.md).
 
+## The roles in detail
+
+Nine roles, each with one job. Five use an AI model where a judgement is needed; four are plain code.
+
+**A note on the word "agent".** In the code every role is called an agent, and this README sometimes uses the word as shorthand. But the roles are not alike, so they are grouped by what they actually do:
+
+| Kind | Roles | What it means |
+| --- | --- | --- |
+| **Coordinator** | Supervisor | Routes the work and starts each step. It makes no judgement about the evidence. |
+| **Source specialist** | Genetics, Literature, Pathways, Clinical | Searches one family of public databases and returns evidence as it finds it. Only Literature uses a model, to read a paper's direction. |
+| **AI reviewer** | Planner, Critic, Verifier, Synthesizer | A model makes a judgement here: what else to search, whether a conflict is real, whether a sentence is supported, how to summarise. |
+
+Strictly, "agent" fits the AI reviewers best. Everything below says which kind each role is.
+
+| Role | Kind | Job | What it uses a model for |
+| --- | --- | --- | --- |
+| **Supervisor** | Coordinator | Plans the run. It starts genetics, literature and clinical, then hands the run to the planner, the critic and the verifier at the right steps. Which agents run is never left to a model. | Nothing |
+| **Planner** | AI reviewer | After the first pass it reads a counts-only table (records per gene and source) and may ask genetics, literature or clinical to search again under another disease name, gene alias or qualifier, at most 4 requests. It never sees the evidence text and cannot add or judge evidence. | Proposing the extra searches |
+| **Genetics** | Source specialist | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. Answers requests for more evidence. | Nothing |
+| **Literature** | Source specialist | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence. | Reading the direction of papers that state none, and second looks |
+| **Pathways** | Source specialist | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Nothing |
+| **Clinical** | Source specialist | Registered trials from ClinicalTrials.gov. Answers requests for more evidence. | Nothing |
+| **Critic** | AI reviewer | Plain code finds three kinds of problem: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. A model then reads each conflict and says whether it looks real or could be explained (for example by ancestry or assay), and may ask a specialist for more evidence. | Explaining conflicts, and asking for more evidence |
+| **Verifier** | AI reviewer | Checks the findings before the report is built. Plain code rebuilds each claim from the evidence it cites. A model compares each sentence of the summary with the claims. Anything unsupported is withheld and listed; anything that could not be checked is kept and marked. | Comparing summary sentences with the claims |
+| **Synthesizer** | AI reviewer | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | The short summary narrative |
+
+**Which model?** It is not fixed in the code. Each AI-assisted role is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per role in **Team & models**, so the synthesizer can use a different model from the planner. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only the five AI-assisted roles need a binding; the others keep one because every release lists all nine, and the admin console shows them as "not used". A release saved before an upgrade gains the new agents automatically, as a new release, and its history is kept.
+
+Each role has an approved, versioned, hashed instruction file in `skills/` (the critic has two: one to find problems, one to explain conflicts). The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+
+**Model text is untrusted.** A reply is read defensively: a bad answer is treated as no answer. A verdict outside the allowed ones becomes "unclear", an explanation with causal or treatment wording is dropped, and a requested search is used only if it passes the checks below. If no model is available, the step is skipped, not failed, and the report says what was and was not checked.
+
 ## How an investigation can end
 
 | Outcome | When | Shown to the user as |

@@ -4,8 +4,7 @@
 
 BioNexus is an evidence-review assistant for drug-target research. A scientist names a disease and up to five genes. A team of source specialists gathers evidence from public genetics, literature, pathway and clinical-trial sources, and AI reviewers plan further searches, flag and explain conflicts, check the findings and write the draft. The scientist **reviews, excludes what they distrust, and approves one exact report version**. Every claim cites the evidence behind it, every excluded record is listed with a reason, and the models and data versions used are recorded.
 
-**Status: MVP.** It runs on one AWS Lightsail host with invite-only Cognito sign-in, and CI runs on every push. **Not done yet:** a verified live AI-model run end to end, the pilot with a locked evaluation set, scheduled source refresh, raw-response capture, MFA.
-**Demo data:** a small **synthetic** Crohn's disease sample is built in and is the default. Real public databases are used in live mode. Nothing here is a clinical tool.
+**Status: MVP**, live on one AWS Lightsail host. Demo data is a small synthetic Crohn's disease sample; live mode uses six public databases. Research use only, not a clinical tool. What is not done yet is listed under [Limits](#limits-and-honest-caveats).
 
 ## Why this exists
 
@@ -69,7 +68,7 @@ graph TB
 
     subgraph MODELS["Models"]
         GW["Model gateway<br/>approved models · pinned release<br/>fallback · budget · call ledger"]
-        LC["LangChain chat models<br/>Anthropic · OpenAI<br/>not yet verified live"]:::planned
+        LC["LangChain chat models<br/>OpenAI run once live<br/>Anthropic not yet verified"]:::planned
     end
 
     SRC["Six public sources"]
@@ -102,35 +101,25 @@ More detail, with sequence diagrams of sign-in, a run and the review step, and a
 
 ### The roles
 
-Nine roles, each with one job. Five use an AI model where a judgement is needed; four are plain code.
+Nine roles, each with one job. Five call an AI model where a judgement is needed; four are plain code. The code calls every role an "agent", but they are not alike, so they are grouped by what they do:
 
-**A note on the word "agent".** In the code every role is called an agent, and this README sometimes uses the word as shorthand. But the roles are not alike, so they are grouped by what they actually do:
-
-| Kind | Roles | What it means |
-| --- | --- | --- |
-| **Coordinator** | Supervisor | Routes the work and starts each step. It makes no judgement about the evidence. |
-| **Source specialist** | Genetics, Literature, Pathways, Clinical | Searches one family of public databases and returns evidence as it finds it. Only Literature uses a model, to read a paper's direction. |
-| **AI reviewer** | Planner, Critic, Verifier, Synthesizer | A model makes a judgement here: what else to search, whether a conflict is real, whether a sentence is supported, how to summarise. |
-
-Strictly, "agent" fits the AI reviewers best. Everything below says which kind each role is.
-
-| Role | Kind | Job | What it uses a model for |
+| Role | Kind | Job | Calls a model for |
 | --- | --- | --- | --- |
-| **Supervisor** | Coordinator | Plans the run. It starts genetics, literature and clinical, then hands the run to the planner, the critic and the verifier at the right steps. Which agents run is never left to a model. | Nothing |
-| **Planner** | AI reviewer | After the first pass it reads a counts-only table (records per gene and source) and may ask genetics, literature or clinical to search again under another disease name, gene alias or qualifier, at most 4 requests. It never sees the evidence text and cannot add or judge evidence. | Proposing the extra searches |
-| **Genetics** | Source specialist | Human genetic evidence from Open Targets and GWAS Catalog. Asks pathways for context, but only about genes with genetic support. Answers requests for more evidence. | Nothing |
-| **Literature** | Source specialist | Papers from Europe PMC. Where a source states no direction, a model reads the passage and answers supports, opposes or unknown. That answer is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence. | Reading the direction of papers that state none, and second looks |
-| **Pathways** | Source specialist | Biological pathways and disease mechanism from Reactome and Monarch. Never pre-planned; only asked by genetics. | Nothing |
-| **Clinical** | Source specialist | Registered trials from ClinicalTrials.gov. Answers requests for more evidence. | Nothing |
-| **Critic** | AI reviewer | Plain code finds three kinds of problem: a record with no supporting passage, a gene with both supporting and opposing studies, and a gene resting on one study family. It asks literature for missing passages and, where a model read a conflicting direction, for a second look at the full passage. A model then reads each conflict and says whether it looks real or could be explained (for example by ancestry or assay), and may ask a specialist for more evidence. | Explaining conflicts, and asking for more evidence |
-| **Verifier** | AI reviewer | Checks the findings before the report is built. Plain code rebuilds each claim from the evidence it cites. A model compares each sentence of the summary with the claims. Anything unsupported is withheld and listed; anything that could not be checked is kept and marked. | Comparing summary sentences with the claims |
-| **Synthesizer** | AI reviewer | Writes claims per gene from accepted, ranked evidence, each citing its record ids. Blocked wording ("causes", "cures", "should take") is replaced by the plain claim list. | The short summary narrative |
+| Supervisor | Coordinator | Plans the run and starts each step. Which roles run is never left to a model. | Nothing |
+| Genetics | Source specialist | Open Targets and GWAS Catalog. Asks pathways for context on genetically supported genes. | Nothing |
+| Literature | Source specialist | Europe PMC papers. Reads direction where a source states none (labelled unreviewed). | Paper direction, second looks |
+| Pathways | Source specialist | Reactome and Monarch, only when genetics asks. | Nothing |
+| Clinical | Source specialist | Registered trials from ClinicalTrials.gov. | Nothing |
+| Planner | AI reviewer | Reads record counts, not evidence, and may ask for up to 4 extra searches. | Proposing searches |
+| Critic | AI reviewer | Finds missing passages, conflicts and single-study support, and asks for passages or more evidence. | Explaining conflicts |
+| Synthesizer | AI reviewer | Writes claims per gene from accepted evidence, each citing record ids. Blocked wording ("causes", "cures") is replaced. | The summary narrative |
+| Verifier | AI reviewer | Rebuilds each claim by code and checks summary sentences. Unsupported ones are withheld and listed. | Comparing sentences with claims |
 
-**Which model?** It is not fixed in the code. Each AI-assisted role is bound to one model, with an optional fallback, by the active **configuration release**. The first release binds every agent to the default model (`BIONEXUS_DEFAULT_MODEL`, fallback `BIONEXUS_FALLBACK_MODEL`). Locally these are placeholder fixture models, so the demo needs no key. For real use, an admin registers Anthropic or OpenAI models in **Model registry** and picks a model per role in **Team & models**, so the synthesizer can use a different model from the planner. Every change is validated, tested on a fixture run, and saved as a new release. Runs already started keep the release they began with, and the report records the models used. Only the five AI-assisted roles need a binding; the others keep one because every release lists all nine, and the admin console shows them as "not used". A release saved before an upgrade gains the new agents automatically, as a new release, and its history is kept.
+Each role in full: [`docs/architecture.md`](docs/architecture.md#the-roles-in-detail).
 
-Each role has an approved, versioned, hashed instruction file in `skills/` (the critic has two: one to find problems, one to explain conflicts). The run's configuration release pins the exact versions, and an agent cannot edit its own skill.
+**Which model?** Not fixed in the code. The active configuration release binds each model-using role to a model, with an optional fallback. An admin changes it in **Team & models**, and every change is validated and saved as a new release. Locally the models are placeholders, so the demo needs no key. Each role has a versioned, hashed instruction file in `skills/` that the release pins, and a role cannot edit its own.
 
-**Model text is untrusted.** A reply is read defensively: a bad answer is treated as no answer. A verdict outside the allowed ones becomes "unclear", an explanation with causal or treatment wording is dropped, and a requested search is used only if it passes the checks below. If no model is available, the step is skipped, not failed, and the report says what was and was not checked.
+**Model text is untrusted.** A bad reply counts as no answer, causal or treatment wording is dropped, and if no model is available the step is skipped and the report says what was not checked.
 
 ### The flow
 
@@ -474,6 +463,7 @@ Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, push
 - **Synthetic demo evidence.** The offline sample and the evaluation reference set are made up. They show the mechanics work, not accuracy on real research.
 - **The newest roles are tested for behaviour, not accuracy.** The planner, the critic's explanations and the verifier are tested with scripted models and sources: requests, limits, validation, fallbacks and the report are proven. Whether they improve results on real research has not been measured. `python -m bionexus.evals.ablation` runs the product with each step switched off and on, with a real model, so you can compare.
 - **The multi-agent design is not shown to beat a simpler one.** On the tiny offline set a single-agent baseline matches the team. Answering that needs a scientist-written locked question set and real models.
+- **Live models.** One full run has been done with an OpenAI model. Anthropic models have not been verified live, and production still uses placeholder models until an admin registers a real one.
 - **Direction can be wrong.** Literature direction comes from a model reading an abstract and is labelled unreviewed. Database associations are not proof. Only a scientist's review makes a finding reliable.
 - **Source rights are conservative defaults, not legal advice.** For example only open-access Europe PMC articles are reusable.
 - **Data leaves the machine in live mode.** Do not load confidential material until the provider and retention decisions are made.
@@ -488,11 +478,13 @@ Several good products help with parts of this problem. BioNexus does not replace
 
 | Product | What it is | Where BioNexus is different |
 |---|---|---|
-| [Open Targets Platform](https://platform-docs.opentargets.org/associations) | Free public resource that scores target-disease links. Its own documentation says the score reflects *how much* evidence exists, not how good it is. | BioNexus uses it as one source, then counts independent study families, shows direction and flags contradictions. It produces no single score. |
-| [Causaly](https://www.causaly.com/use-cases/target-identification-prioritization) | Commercial platform with a proprietary knowledge graph for target identification. | Causaly has a far larger curated knowledge base. BioNexus is open to inspect and run yourself, and bases every claim on passages fetched from public sources for that run. |
+| [Open Targets Platform](https://platform-docs.opentargets.org/associations) | Free public resource that scores target-disease links. Its own documentation calls the score a heuristic based on data availability and says not to read it as a confidence score. | BioNexus uses it as one source, then counts independent study families, shows direction and flags contradictions. It produces no single score. |
+| [Causaly](https://www.causaly.com/use-cases/target-identification-prioritization) | Commercial agentic platform that reads literature and a proprietary biomedical knowledge graph, aimed at early target decisions. | Causaly has a far larger curated knowledge base. BioNexus builds every claim from passages fetched from public sources for that run, and records the instructions, models and data versions used, on infrastructure you control. |
 | [Insilico PandaOmics](https://www.bio-itworld.com/news/2024/02/27/validated-ai-driven-target-identification-and-biomarker-discovery-with-insilico-medicine-s-pandaomics) | Commercial AI platform that ranks targets from omics, text and expert scores. | PandaOmics predicts targets from omics data, which BioNexus does not. BioNexus reviews published evidence and abstains when it is thin. |
-| [Elicit](https://elicit.com/) and similar | General AI tools that search papers and extract data into tables. | Built for literature review in any field. BioNexus answers one question, a gene and a disease, across genetics, pathways and trials as well as papers. |
+| [Elicit](https://elicit.com/) and similar | General AI research assistant: searches papers, extracts data into tables, runs systematic-review workflows, and offers a research agent and an MCP server. | Built for research in any field. BioNexus is narrow: one gene and disease question, across genetics, pathways and trials as well as papers, with studies counted once and direction explicit. |
 | Searching by hand | The usual baseline. | Slow and hard to repeat, but fully under the scientist's control. BioNexus automates the gathering and keeps the sign-off. |
+
+**What is distinct.** No single feature here is unique. The combination is the point: independent studies counted once, direction stated for every finding, unsupported statements withheld, and a scientist approving one exact version with a full record behind it. Whether that leads to better decisions than the products above has not been measured.
 
 **Where existing products are stronger:** scale and curation (they cover far more data than six public sources), prediction (BioNexus only reviews evidence), and maturity (they have customers, support and validation; BioNexus has not yet been shown to beat a simpler single-agent approach on a real evaluation set).
 
