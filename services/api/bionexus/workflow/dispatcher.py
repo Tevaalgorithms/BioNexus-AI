@@ -4,12 +4,11 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 from bionexus.agents.base import Agent, AgentResult, reply_to
+from bionexus.agents.optimization import AO_MAX_PARALLEL_SPECIALISTS
 from bionexus.contracts.messages import AgentMessage, AgentName, MessageType
 from bionexus.messaging.router import MessageRouter
 from bionexus.workflow.events import EventPublisher
 from bionexus.workflow.state import RunState
-
-MAX_PARALLEL_SPECIALISTS = 2  # SCOPE-05: two concurrent specialist calls per investigation
 
 
 class Dispatcher:
@@ -26,7 +25,7 @@ class Dispatcher:
 
     def run_parallel(self, state: RunState, initial: list[AgentMessage]) -> None:
         """Each initial task and its follow-up chain run on a bounded pool."""
-        with ThreadPoolExecutor(max_workers=MAX_PARALLEL_SPECIALISTS) as pool:
+        with ThreadPoolExecutor(max_workers=AO_MAX_PARALLEL_SPECIALISTS) as pool:
             futures = [pool.submit(self._drain, state, [message]) for message in initial]
             for future in futures:
                 future.result()  # re-raises the first failure

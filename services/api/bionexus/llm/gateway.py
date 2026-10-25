@@ -5,6 +5,7 @@ import time
 from bionexus.contracts.errors import ModelUnavailable
 from bionexus.contracts.invocation import Invocation
 from bionexus.contracts.messages import AgentName
+from bionexus.llm.cache import CachedAnswer, ResponseCache
 from bionexus.llm.clients import ModelClient, ProviderError
 from bionexus.llm.registry import ModelRegistry, ModelSpec
 from bionexus.llm.release import AgentBinding, ReleaseStore
@@ -23,23 +24,48 @@ class ModelGateway:
         releases: ReleaseStore,
         clients: dict[str, ModelClient],
         flags: FlagStore,
+        cache: ResponseCache | None = None,
     ) -> None:
         self._registry = registry
         self._releases = releases
         self._clients = clients
         self._flags = flags
+        self._cache = cache or ResponseCache(0)  # no cache unless one is given
 
     def complete(self, state: RunState, agent: AgentName, prompt: str) -> str:
         if self._flags.is_set(MODELS_DISABLED):
             raise ModelUnavailable("Model calls are disabled by an administrator")
         binding = self._releases.get(state.release_id).bindings[agent]
+        key = self._cache.key(state.tenant_id, binding, prompt)
+        cached = self._cache.get(key)
+        if cached is not None:
+            self._record_hit(state, agent, cached)
+            return cached.text
+        answer = self._ask_chain(state, agent, binding, prompt)
+        self._cache.put(key, answer)
+        return answer.text
+
+    def _ask_chain(
+        self, state: RunState, agent: AgentName, binding: AgentBinding, prompt: str
+    ) -> CachedAnswer:
+        """Try the bound model, then its fallback. Returns the answer and who gave it."""
         failure_reason: str | None = None
         for model_id in binding.model_chain():
             try:
-                return self._invoke(state, agent, binding, model_id, prompt, failure_reason)
+                text = self._invoke(state, agent, binding, model_id, prompt, failure_reason)
+                return CachedAnswer(text, model_id)
             except ProviderError as error:
                 failure_reason = str(error)
         raise ModelUnavailable(f"No approved model could serve the {agent} agent")
+
+    @staticmethod
+    def _record_hit(state: RunState, agent: AgentName, hit: CachedAnswer) -> None:
+        """A cache hit costs nothing and uses no call, but it still appears in the ledger."""
+        invocation = Invocation(
+            agent=agent, model_id=hit.model_id, input_tokens=0, output_tokens=0, cost_usd=0.0
+        )
+        with state.lock:
+            state.invocations.append(invocation.model_copy(update={"cached": True}))
 
     def _invoke(
         self,

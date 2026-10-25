@@ -4,13 +4,13 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 from bionexus.agents.base import Agent, AgentResult
+from bionexus.agents.optimization import AO_MAX_RETAINED_EVIDENCE
 from bionexus.contracts.evidence import Claim, EvidenceRecord
 from bionexus.contracts.messages import AgentMessage, AgentName
 from bionexus.evidence.eligibility import accepted_evidence
 from bionexus.evidence.matrix import MatrixRow, build_matrix
 from bionexus.workflow.state import RunState
 
-MAX_RETAINED_EVIDENCE = 40  # SCOPE-06
 BLOCKED_PHRASES = ("causes", "cures", "proves", "should take", "recommend treatment")
 
 
@@ -25,7 +25,7 @@ def retained_evidence(state: RunState) -> list[EvidenceRecord]:
     accepted = {r.evidence_id: r for r in accepted_evidence(list(state.evidence.values()))}
     ranked = [i for i in state.ranked_evidence_ids if i in accepted]
     unranked = sorted(set(accepted) - set(ranked))
-    return [accepted[i] for i in [*ranked, *unranked][:MAX_RETAINED_EVIDENCE]]
+    return [accepted[i] for i in [*ranked, *unranked][:AO_MAX_RETAINED_EVIDENCE]]
 
 
 def language_violations(text: str) -> list[str]:

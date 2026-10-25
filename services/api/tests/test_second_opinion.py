@@ -5,8 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from bionexus.agents.critic import MAX_RECHECKS_PER_ROUND, CriticAgent
+from bionexus.agents.critic import CriticAgent
 from bionexus.agents.literature import LiteratureAgent
+from bionexus.agents.optimization import AO_MAX_RECHECKS_PER_ROUND
 from bionexus.contracts.evidence import EvidenceRecord, IssueKind, Stance
 from bionexus.contracts.messages import AgentName, ChallengeAsk, MessageType
 from bionexus.evidence.stance import MODEL_STANCE_NOTE, RECHECKED_NOTE
@@ -145,11 +146,11 @@ def test_the_same_record_is_challenged_only_once(state):
 
 def test_rechecks_per_round_are_capped(state):
     state.add_evidence([record("open_targets", "OT-1", "fam-db", Stance.SUPPORTS)])
-    for n in range(MAX_RECHECKS_PER_ROUND + 3):
+    for n in range(AO_MAX_RECHECKS_PER_ROUND + 3):
         state.add_evidence(
             [record("europe_pmc", f"P{n}", f"fam-{n}", Stance.OPPOSES, model_read=True)]
         )
-    assert len(critic().pending_repairs(state)) == MAX_RECHECKS_PER_ROUND
+    assert len(critic().pending_repairs(state)) == AO_MAX_RECHECKS_PER_ROUND
 
 
 def test_no_challenge_is_sent_when_the_message_budget_is_nearly_spent(state):

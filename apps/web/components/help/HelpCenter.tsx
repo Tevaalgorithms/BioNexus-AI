@@ -11,7 +11,7 @@ export default function HelpCenter({ audience }: { audience: "scientist" | "admi
       <section className="card" aria-labelledby="team-h">
         <div>
           <h2 id="team-h">A team of specialist agents, not one black box</h2>
-          <p>Each agent has one job, its own approved data sources and its own configurable AI model. They can only talk to each other through a recorded, rule-checked channel, so you can always see who asked whom for what.</p>
+          <p>Each agent has one job and its own approved data sources. Only two use an AI model (literature and the synthesizer); the rest are plain, testable code, which keeps runs fast and cheap. They can only talk to each other through a recorded, rule-checked channel, so you can always see who asked whom for what.</p>
           <ul style={{ paddingLeft: 20 }}>{AGENTS.map((a) => <li key={a.id}><strong>{a.name}:</strong> {a.role}</li>)}</ul>
         </div>
         <div style={{ marginTop: 18 }}><TeamDiagram /></div>

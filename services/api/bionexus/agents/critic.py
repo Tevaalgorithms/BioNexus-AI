@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import ClassVar
 
 from bionexus.agents.base import Agent, AgentResult
+from bionexus.agents.optimization import AO_MAX_RECHECKS_PER_ROUND
 from bionexus.contracts.evidence import EvidenceRecord, Issue, IssueKind
 from bionexus.contracts.messages import AgentMessage, AgentName, ChallengeAsk, MessageType
 from bionexus.evidence.matrix import build_matrix
@@ -13,7 +14,6 @@ from bionexus.messaging.router import MAX_MESSAGES_PER_RUN
 from bionexus.workflow.state import RunState
 
 CHALLENGEABLE_SOURCES = frozenset({"europe_pmc"})
-MAX_RECHECKS_PER_ROUND = 3  # each re-check is one model call, so a conflict cannot fan out
 MESSAGE_RESERVE = 4  # room kept for the critic's own task and reply
 
 
@@ -78,8 +78,10 @@ class CriticAgent(Agent):
 
     def handle(self, message: AgentMessage, state: RunState) -> AgentResult:
         issues = find_issues(list(state.evidence.values()))
-        note = self.ask_model(state, f"Review {len(issues)} issues.")
         challenges = [self._challenge(message, state, r) for r in self.pending_repairs(state)]
+        note = (
+            f"{len(issues)} open issues; {len(challenges)} challenges sent."  # no model call (AO-1)
+        )
         return AgentResult(issues=issues, outgoing=challenges, assessment=note)
 
     def pending_repairs(self, state: RunState) -> list[Repair]:
@@ -119,7 +121,7 @@ class CriticAgent(Agent):
             and is_model_read(r)
             and not _challenged(state, r.evidence_id, ask)
         ]
-        return [Repair(evidence_id, ask) for evidence_id in candidates[:MAX_RECHECKS_PER_ROUND]]
+        return [Repair(evidence_id, ask) for evidence_id in candidates[:AO_MAX_RECHECKS_PER_ROUND]]
 
     def _challenge(self, parent: AgentMessage, state: RunState, repair: Repair) -> AgentMessage:
         return new_message(

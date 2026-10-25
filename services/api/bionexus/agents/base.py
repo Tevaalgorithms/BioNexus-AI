@@ -6,6 +6,7 @@ from typing import ClassVar
 
 from pydantic import BaseModel, Field
 
+from bionexus.agents.optimization import AO_PASSAGE_CHARS
 from bionexus.agents.skills import SkillRegistry
 from bionexus.contracts.evidence import EvidenceRecord, Exclusion, Issue
 from bionexus.contracts.messages import AgentMessage, AgentName, MessageType
@@ -25,13 +26,7 @@ class AgentDeps:
     releases: ReleaseStore
 
 
-MAX_PASSAGE_IN_PROMPT = 300
-RECHECK_PASSAGE_IN_PROMPT = 1500  # a second opinion reads the whole passage, not the excerpt
-
-
-def evidence_block(
-    records: list[EvidenceRecord], passage_limit: int = MAX_PASSAGE_IN_PROMPT
-) -> str:
+def evidence_block(records: list[EvidenceRecord], passage_limit: int = AO_PASSAGE_CHARS) -> str:
     """Source text enters prompts only in this delimited block, as data, never instructions."""
     lines = [f"[{r.evidence_id}] {r.finding} :: {r.passage[:passage_limit]}" for r in records]
     return "<evidence_data>\n" + "\n".join(lines) + "\n</evidence_data>"
@@ -69,7 +64,7 @@ class Agent(ABC):
 
 
 class SpecialistAgent(Agent):
-    """Retrieves eligible evidence from its sources and summarises it with its own model."""
+    """Retrieves eligible evidence from its sources. It makes no model call (AO-1)."""
 
     source_names: ClassVar[tuple[str, ...]]
 
@@ -86,12 +81,10 @@ class SpecialistAgent(Agent):
             return AgentResult(
                 excluded=excluded, abstained=True, assessment="No eligible evidence."
             )
-        note = self.ask_model(state, self._summary(eligible))
-        state.remember(self.name.value, note)
         return AgentResult(
             evidence=eligible,
             excluded=excluded,
-            assessment=note,
+            assessment=f"{len(eligible)} eligible records from {', '.join(self.source_names)}.",
             outgoing=self.follow_ups(eligible, message, state),
         )
 
@@ -101,10 +94,6 @@ class SpecialistAgent(Agent):
             source = self.deps.sources.get(source_name)
             records.extend(source.search(state.request.disease, targets))
         return records
-
-    @staticmethod
-    def _summary(records: list[EvidenceRecord]) -> str:
-        return f"Summarise {len(records)} evidence items.\n{evidence_block(records)}"
 
     def follow_ups(
         self, evidence: list[EvidenceRecord], message: AgentMessage, state: RunState

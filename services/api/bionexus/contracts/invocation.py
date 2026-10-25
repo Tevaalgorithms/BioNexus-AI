@@ -12,3 +12,4 @@ class Invocation(BaseModel):
     output_tokens: int
     cost_usd: float
     fallback_reason: str | None = None
+    cached: bool = False  # AO-5: answered from the cache; nothing was sent to a provider

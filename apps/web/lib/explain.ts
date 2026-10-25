@@ -15,16 +15,17 @@ export const STAGES: StageInfo[] = [
   { id: "complete", label: "Your approval", icon: "shield", plain: "Waits for a scientist to review and approve one exact report version." },
 ];
 
-export interface AgentInfo { id: string; name: string; icon: IconName; role: string; sources: string[]; sourcesText: string }
+/** `modelUse` is what the agent calls a model for, or null when it is plain code and never calls one. */
+export interface AgentInfo { id: string; name: string; icon: IconName; role: string; sources: string[]; sourcesText: string; modelUse: string | null }
 
 export const AGENTS: AgentInfo[] = [
-  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work: always starts genetics, literature and clinical. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates" },
-  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, with the direction of effect and study context where the source gives them. Asks pathways for context on genes it finds support for.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog" },
-  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies; a finding can be cited only if a passage you can open backs it. Where a paper states no direction, a model reads it and the result is labelled unreviewed. Answers the critic's requests for a passage or a second look.", sources: ["europe_pmc"], sourcesText: "Europe PMC" },
-  { id: "pathways", name: "Pathways", icon: "path", role: "Adds biological context: curated pathways and phenotype data. Only asked by genetics. Annotation is not proof of mechanism.", sources: ["reactome", "monarch"], sourcesText: "Reactome, Monarch" },
-  { id: "clinical", name: "Clinical context", icon: "flask", role: "Notes registered clinical trials and their status. Registration is not evidence a treatment works.", sources: ["clinicaltrials"], sourcesText: "ClinicalTrials.gov" },
-  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study. Asks the literature agent for missing passages and to re-read conflicting directions a model assigned; what it cannot resolve stays listed.", sources: [], sourcesText: "Reviews all evidence" },
-  { id: "synthesizer", name: "Synthesizer", icon: "pen", role: "Writes the draft using only evidence that was accepted; blocks causal and treatment language.", sources: [], sourcesText: "Writes the report" },
+  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work: always starts genetics, literature and clinical. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates", modelUse: null },
+  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, with the direction of effect and study context where the source gives them. Asks pathways for context on genes it finds support for.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog", modelUse: null },
+  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies; a finding can be cited only if a passage you can open backs it. Where a paper states no direction, a model reads it and the result is labelled unreviewed. Answers the critic's requests for a passage or a second look.", sources: ["europe_pmc"], sourcesText: "Europe PMC", modelUse: "Reading the direction of papers that state none, and second looks" },
+  { id: "pathways", name: "Pathways", icon: "path", role: "Adds biological context: curated pathways and phenotype data. Only asked by genetics. Annotation is not proof of mechanism.", sources: ["reactome", "monarch"], sourcesText: "Reactome, Monarch", modelUse: null },
+  { id: "clinical", name: "Clinical context", icon: "flask", role: "Notes registered clinical trials and their status. Registration is not evidence a treatment works.", sources: ["clinicaltrials"], sourcesText: "ClinicalTrials.gov", modelUse: null },
+  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study. Asks the literature agent for missing passages and to re-read conflicting directions a model assigned; what it cannot resolve stays listed.", sources: [], sourcesText: "Reviews all evidence", modelUse: null },
+  { id: "synthesizer", name: "Synthesizer", icon: "pen", role: "Writes the draft using only evidence that was accepted; blocks causal and treatment language.", sources: [], sourcesText: "Writes the report", modelUse: "Writing the short summary narrative" },
 ];
 
 export const SOURCE_LABELS: Record<string, string> = {

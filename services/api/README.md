@@ -47,6 +47,7 @@ run. The root [README](../../README.md#run-it-locally) has the full local setup.
 
 ## Conventions
 
+- Cost and speed levers (call limits, prompt sizes, parallelism, the response cache) are named constants in `bionexus/agents/optimization.py`; change them there, not inline.
 - Keep each function simple: the Ruff complexity limit is 5 and CI enforces it.
 - One class or one concern per module, named after what it holds.
 - No secret values in code. Secrets are looked up by name (`llm/secrets.py`, `params.py`).

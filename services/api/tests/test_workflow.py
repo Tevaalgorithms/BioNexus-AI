@@ -65,7 +65,7 @@ def test_budget_exhaustion_ends_incomplete_not_failed(container, request_):
     from bionexus.container import build_container
     from tests.conftest import TOKENS
 
-    tight = build_container(TOKENS, Settings(run_budget_usd=10.0, run_max_model_calls=1))
+    tight = build_container(TOKENS, Settings(run_budget_usd=10.0, run_max_model_calls=0))
     state = run_to_review(tight, request_)
     assert state.status is InvestigationStatus.INCOMPLETE
     assert "Call limit" in state.stop_reason

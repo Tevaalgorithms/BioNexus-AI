@@ -1,19 +1,19 @@
 """Literature agent: published studies, with a model-extracted stance when the source has none."""
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
-from bionexus.agents.base import (
-    RECHECK_PASSAGE_IN_PROMPT,
-    AgentResult,
-    SpecialistAgent,
-    evidence_block,
+from bionexus.agents.base import AgentResult, SpecialistAgent, evidence_block
+from bionexus.agents.optimization import (
+    AO_MAX_DIRECTION_CALLS,
+    AO_MAX_PARALLEL_MODEL_CALLS,
+    AO_RECHECK_PASSAGE_CHARS,
 )
 from bionexus.contracts.evidence import EvidenceRecord, Stance
 from bionexus.contracts.messages import AgentMessage, AgentName, ChallengeAsk
 from bionexus.evidence.stance import MODEL_STANCE_NOTE, RECHECKED_NOTE
 from bionexus.workflow.state import RunState
 
-MAX_STANCE_EXTRACTIONS = 10
 STANCE_QUESTION = (
     "Does the evidence below support, oppose, or not clearly state an association between the "
     "gene and the disease? Answer with exactly one word: supports, opposes or unknown.\n"
@@ -34,10 +34,17 @@ class LiteratureAgent(SpecialistAgent):
 
     def assess(self, message: AgentMessage, state: RunState) -> AgentResult:
         result = super().assess(message, state)
-        result.evidence = [
-            self._with_stance(r, state) for r in result.evidence[:MAX_STANCE_EXTRACTIONS]
-        ] + result.evidence[MAX_STANCE_EXTRACTIONS:]
+        read, unread = (
+            result.evidence[:AO_MAX_DIRECTION_CALLS],
+            result.evidence[AO_MAX_DIRECTION_CALLS:],
+        )
+        result.evidence = [*self._with_stances(read, state), *unread]
         return result
+
+    def _with_stances(self, records: list[EvidenceRecord], state: RunState) -> list[EvidenceRecord]:
+        """AO-7: the direction calls are independent, so they run together; order is kept."""
+        with ThreadPoolExecutor(max_workers=AO_MAX_PARALLEL_MODEL_CALLS) as pool:
+            return list(pool.map(lambda record: self._with_stance(record, state), records))
 
     def _with_stance(self, record: EvidenceRecord, state: RunState) -> EvidenceRecord:
         """Only sources that give no direction are classified, from the passage, with a model."""
@@ -62,7 +69,7 @@ class LiteratureAgent(SpecialistAgent):
         self, original: EvidenceRecord, with_passage: EvidenceRecord, state: RunState
     ) -> AgentResult:
         """A second opinion: the model reads the whole passage, not the excerpt it saw before."""
-        prompt = STANCE_QUESTION + evidence_block([with_passage], RECHECK_PASSAGE_IN_PROMPT)
+        prompt = STANCE_QUESTION + evidence_block([with_passage], AO_RECHECK_PASSAGE_CHARS)
         stance = parse_stance(self.ask_model(state, prompt))
         context = original.context.replace(MODEL_STANCE_NOTE, RECHECKED_NOTE)
         updated = with_passage.model_copy(update={"stance": stance, "context": context})

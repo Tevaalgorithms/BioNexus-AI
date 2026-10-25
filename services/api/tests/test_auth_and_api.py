@@ -86,7 +86,9 @@ def test_admin_rebind_applies_to_new_runs_only(client):
         "expected_revision": 1,
     }
     assert (
-        client.put("/admin/agents/literature/binding", json=body, headers=auth("admin")).status_code
+        client.put(
+            "/admin/agents/synthesizer/binding", json=body, headers=auth("admin")
+        ).status_code
         == 200
     )
 
@@ -97,10 +99,10 @@ def test_admin_rebind_applies_to_new_runs_only(client):
     manifest = client.get(f"/investigations/{new_run}/report", headers=auth("sci")).json()[
         "manifest"
     ]
-    literature_models = {
-        c["model_id"] for c in manifest["model_calls"] if c["agent"] == "literature"
+    synthesizer_models = {
+        c["model_id"] for c in manifest["model_calls"] if c["agent"] == "synthesizer"
     }
-    assert literature_models == {"fixture-large"}
+    assert synthesizer_models == {"fixture-large"}
 
 
 def test_stale_admin_revision_is_a_conflict_and_unknown_model_is_rejected(client):

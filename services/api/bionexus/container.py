@@ -12,6 +12,7 @@ from bionexus.agents.clinical import ClinicalAgent
 from bionexus.agents.critic import CriticAgent
 from bionexus.agents.genetics import GeneticsAgent
 from bionexus.agents.literature import LiteratureAgent
+from bionexus.agents.optimization import AO_RESPONSE_CACHE_ENTRIES
 from bionexus.agents.pathways import PathwaysAgent
 from bionexus.agents.skills import SkillRegistry
 from bionexus.agents.supervisor import SupervisorAgent
@@ -25,6 +26,7 @@ from bionexus.contracts.identity import ClientKind, Principal, Role
 from bionexus.contracts.investigation import InvestigationRequest
 from bionexus.contracts.messages import AgentName
 from bionexus.jobs.worker import Worker
+from bionexus.llm.cache import ResponseCache
 from bionexus.llm.clients import ModelClient
 from bionexus.llm.factory import LazyClients
 from bionexus.llm.gateway import ModelGateway
@@ -103,6 +105,7 @@ class Container:
     storage: Storage
     graph: CompiledStateGraph
     nodes: InvestigationNodes
+    gateway: ModelGateway
     projects: ProjectService
     inline_worker: bool = True
     meta: Callable[[], dict] = field(default=dict)
@@ -195,7 +198,8 @@ def build_container(
     clients = clients if clients is not None else LazyClients()
     releases = ReleaseStore(registry, storage.releases)
     releases.seed(initial or default_release())
-    gateway = ModelGateway(registry, releases, clients, storage.flags)
+    cache = ResponseCache(AO_RESPONSE_CACHE_ENTRIES)
+    gateway = ModelGateway(registry, releases, clients, storage.flags, cache)
     sources = sources or build_sources(live=settings_provider().live_sources)
     skills = SkillRegistry()
     deps = AgentDeps(sources, gateway, skills, releases)
@@ -232,6 +236,7 @@ def build_container(
         storage=storage,
         graph=graph,
         nodes=nodes,
+        gateway=gateway,
         projects=ProjectService(storage.projects, storage.users),
         inline_worker=settings_provider().inline_worker,
         meta=lambda: describe_mode(sources, registry, releases, settings_provider()),

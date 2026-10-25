@@ -85,7 +85,7 @@ sequenceDiagram
         opt specialists
             N->>Ag: supervisor plans, up to 2 specialists in parallel
             Ag->>Src: guarded requests
-            Ag->>GW: summarise evidence (budget reserved first)
+            Ag->>GW: literature reads the direction of papers (parallel, repeats answered from the cache)
             Ag->>Ag: genetics asks pathways for context via the router
         end
         opt critique

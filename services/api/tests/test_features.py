@@ -139,11 +139,11 @@ BODY = {"binding": {"model_id": "fixture-large"}, "reason": "trial", "expected_r
 
 def test_admin_validate_evaluate_activate_rollback(client):
     validate = client.post(
-        "/admin/agents/literature/binding/validate", json=BODY, headers=auth("admin")
+        "/admin/agents/synthesizer/binding/validate", json=BODY, headers=auth("admin")
     ).json()
     assert validate["valid"] and "model_id" in validate["changes"]
     evaluation = client.post(
-        "/admin/agents/literature/binding/evaluate", json=BODY, headers=auth("admin")
+        "/admin/agents/synthesizer/binding/evaluate", json=BODY, headers=auth("admin")
     ).json()
     assert (
         evaluation["status"] == "waiting_for_review"
@@ -153,14 +153,16 @@ def test_admin_validate_evaluate_activate_rollback(client):
         client.get("/admin/release", headers=auth("admin")).json()["revision"] == 1
     )  # not activated
     assert (
-        client.put("/admin/agents/literature/binding", json=BODY, headers=auth("admin")).status_code
+        client.put(
+            "/admin/agents/synthesizer/binding", json=BODY, headers=auth("admin")
+        ).status_code
         == 200
     )
     back = client.post(
         "/admin/releases/rel-1/rollback", json={"reason": "regression"}, headers=auth("admin")
     )
     assert back.json()["revision"] == 3
-    assert back.json()["bindings"]["literature"]["model_id"] == "fixture-small"
+    assert back.json()["bindings"]["synthesizer"]["model_id"] == "fixture-small"
     actions = [e["action"] for e in client.get("/admin/audit", headers=auth("admin")).json()]
     assert {"config.rebind", "config.rollback", "config.evaluate"} <= set(actions)
 
@@ -232,6 +234,7 @@ def test_injected_source_text_is_data_and_changes_no_configuration(request_, tmp
         )
         for row in data["records"]:
             row["passage"] = row["passage"] and evil
+            row["stance"] = "unknown"  # forces the direction call that puts source text in a prompt
         (directory / f"{name}.json").write_text(json.dumps(data))
     sources = SourceRegistry([FixtureSource(n, directory) for n in SOURCE_NAMES])
     spy = SpyClient()

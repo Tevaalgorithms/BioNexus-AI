@@ -16,8 +16,6 @@ from bionexus.contracts.invocation import Invocation
 from bionexus.contracts.messages import AgentMessage
 from bionexus.workflow.budget import Budget
 
-MAX_NOTES_PER_AGENT = 20
-
 
 class RunState(BaseModel):
     run_id: str
@@ -37,7 +35,6 @@ class RunState(BaseModel):
     issues: list[Issue] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
     narrative: str = ""
-    working_memory: dict[str, list[str]] = Field(default_factory=dict)
     report_id: str | None = None
     ranked_evidence_ids: list[str] = Field(default_factory=list)
     graph_context: list[str] = Field(default_factory=list)
@@ -56,8 +53,3 @@ class RunState(BaseModel):
     def add_evidence(self, records: list[EvidenceRecord]) -> None:
         for record in records:
             self.evidence[record.evidence_id] = record
-
-    def remember(self, agent: str, note: str) -> None:
-        notes = self.working_memory.setdefault(agent, [])
-        notes.append(note)
-        del notes[:-MAX_NOTES_PER_AGENT]

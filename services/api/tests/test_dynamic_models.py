@@ -40,11 +40,13 @@ def test_model_registered_at_runtime_can_be_bound_and_used_without_restart(
     assert "fixture-extra" in names
     body = {"binding": {"model_id": "fixture-extra"}, "reason": "try it", "expected_revision": 1}
     assert (
-        client.put("/admin/agents/literature/binding", json=body, headers=auth("admin")).status_code
+        client.put(
+            "/admin/agents/synthesizer/binding", json=body, headers=auth("admin")
+        ).status_code
         == 200
     )
     state = run_to_review(container, request_)
-    assert {i.model_id for i in state.invocations if i.agent == "literature"} <= {"fixture-extra"}
+    assert {i.model_id for i in state.invocations if i.agent == "synthesizer"} == {"fixture-extra"}
 
 
 def test_scientist_cannot_register_models(client):
@@ -106,7 +108,7 @@ def test_deprecated_model_cannot_be_chosen_but_still_serves_pinned_runs(containe
     app.admin.register_model(ADMIN, ModelSpec(**FIXTURE_MODEL))
     app.admin.rebind_agent(
         ADMIN,
-        "literature",
+        "synthesizer",
         AgentBinding(model_id="fixture-extra"),
         "use",
         1,
@@ -122,17 +124,17 @@ def test_deprecated_model_cannot_be_chosen_but_still_serves_pinned_runs(containe
 def test_disabled_model_falls_back_to_the_approved_fallback_and_records_why(container, request_):
     container.admin.rebind_agent(
         ADMIN,
-        "literature",
+        "synthesizer",
         AgentBinding(model_id="fixture-small", fallback_model_id="fixture-large"),
         "x",
         1,
     )
     container.admin.set_model_status(ADMIN, "fixture-small", ModelStatus.DISABLED, "bad outputs")
     state = run_to_review(container, request_)
-    literature = [i for i in state.invocations if i.agent == "literature"]
-    assert literature and all(
+    synthesizer = [i for i in state.invocations if i.agent == "synthesizer"]
+    assert synthesizer and all(
         i.model_id == "fixture-large" and "disabled" in (i.fallback_reason or "")
-        for i in literature
+        for i in synthesizer
     )
 
 
