@@ -134,30 +134,53 @@ Each role has an approved, versioned, hashed instruction file in `skills/` (the 
 
 ### The flow
 
+Nodes are coloured by kind: dark is the coordinator, light blue a source specialist, amber an AI reviewer. A dashed edge is a request one role makes of another; a solid edge moves the run on.
+
 ```mermaid
 flowchart TB
-    REQ["Scientist's request<br/>disease · genes · question · cutoff"] --> SUP["Supervisor<br/>plans fixed tasks, no model"]
-    SUP -- "task.request" --> GEN["Genetics<br/>Open Targets · GWAS"]
-    SUP -- "task.request" --> LIT["Literature<br/>Europe PMC"]
-    SUP -- "task.request" --> CLI["Clinical<br/>ClinicalTrials.gov"]
-    GEN -- "task.request<br/>only genes with genetic support" --> PATH["Pathways<br/>Reactome · Monarch"]
+    REQ["Scientist's request<br/>disease · genes · question · cutoff"] --> SUP["Supervisor<br/>coordinator · no model<br/>plans fixed tasks"]
+    SUP -- "task.request" --> GEN["Genetics<br/>source specialist · no model<br/>Open Targets · GWAS"]
+    SUP -- "task.request" --> LIT["Literature<br/>source specialist · AI reads direction<br/>Europe PMC"]
+    SUP -- "task.request" --> CLI["Clinical<br/>source specialist · no model<br/>ClinicalTrials.gov"]
+    GEN -. "task.request<br/>only genes with genetic support" .-> PATH["Pathways<br/>source specialist · no model<br/>Reactome · Monarch"]
     GEN --> EV["Eligible evidence<br/>each specialist applies the gate:<br/>licence · cutoff · not excluded"]
     LIT --> EV
     CLI --> EV
     PATH --> EV
-    EV --> PLAN["Planner<br/>reads counts, not evidence<br/>asks for more searches"]
-    PLAN -- "evidence.request<br/>another name or qualifier<br/>at most 4" --> GEN
-    PLAN -- "evidence.request" --> LIT
-    PLAN -- "evidence.request" --> CLI
-    PLAN --> CRIT["Critic<br/>missing passages · conflicts · single-study support<br/>explains each conflict"]
-    CRIT -- "evidence.challenge: a passage or a second look<br/>evidence.request: more evidence<br/>repair loop, at most 2 rounds" --> LIT
-    CRIT -- "evidence.request" --> GEN
-    CRIT -- "evidence.request" --> CLI
+    EV --> PLAN["Planner<br/>AI reviewer<br/>reads counts, not evidence"]
+    PLAN -. "evidence.request<br/>another name or qualifier<br/>at most 4" .-> GEN
+    PLAN -. "evidence.request" .-> LIT
+    PLAN -. "evidence.request" .-> CLI
+    PLAN --> CRIT["Critic<br/>AI reviewer<br/>finds problems, explains conflicts"]
+    CRIT -. "evidence.challenge: a passage or a second look<br/>evidence.request: more evidence<br/>repair loop, at most 2 rounds" .-> LIT
+    CRIT -. "evidence.request" .-> GEN
+    CRIT -. "evidence.request" .-> CLI
     CRIT --> RANK["Retrieve and rank<br/>full text + vectors"]
-    RANK --> SYN["Synthesizer<br/>claims from accepted evidence only"]
-    SYN --> VER["Verifier<br/>rebuilds claims by code<br/>checks each summary sentence<br/>withholds what is unsupported"]
+    RANK --> SYN["Synthesizer<br/>AI reviewer<br/>claims from accepted evidence only"]
+    SYN --> VER["Verifier<br/>AI reviewer<br/>rebuilds claims by code<br/>checks each summary sentence"]
     VER --> REV["Scientist reviews, excludes,<br/>approves one exact version"]
+    classDef coordinator fill:#0e4f7a,stroke:#0e4f7a,color:#ffffff
+    classDef specialist fill:#e5eef6,stroke:#0e4f7a,color:#0f1b2a
+    classDef reviewer fill:#fdf2dd,stroke:#8a4b00,color:#0f1b2a
+    class SUP coordinator
+    class GEN,LIT,CLI,PATH specialist
+    class PLAN,CRIT,SYN,VER reviewer
 ```
+
+**Who acts at each step**
+
+| Step | Who | Uses a model? |
+| --- | --- | --- |
+| 1 Check request | The workflow | No |
+| 2 Recall reviewed work | The workflow (this project's approved evidence) | No |
+| 3 Gather evidence | Supervisor starts genetics, literature and clinical; genetics may ask pathways | Literature, only to read the direction of papers that state none |
+| 4 Review coverage | Planner, then the specialists it asks | Planner |
+| 5 Challenge and repair | Critic, literature and any specialist the critic asks | Critic; literature for second looks and new papers |
+| 6 Rank and connect | The workflow (search index and evidence graph) | No |
+| 7 Write findings | Synthesizer | Synthesizer |
+| 8 Verify findings | Verifier | Verifier, for summary sentences |
+| 9 Build report | The workflow | No |
+| 10 Review and approval | The scientist | A person decides |
 
 Up to two specialists run at the same time. The workflow calls the synthesizer directly after ranking. The supervisor starts the planner, the critic and the verifier by sending each a task at its step, so those handoffs are recorded like any other.
 
@@ -170,10 +193,10 @@ sequenceDiagram
     participant S as Supervisor
     participant G as Genetics
     participant P as Pathways
-    participant PL as Planner
-    participant C as Critic
-    participant L as Literature
-    participant V as Verifier
+    participant PL as Planner (AI)
+    participant C as Critic (AI)
+    participant L as Literature (AI)
+    participant V as Verifier (AI)
     S->>G: task.request (genes)
     G-->>S: task.result
     G->>P: task.request (supported genes only)
@@ -195,6 +218,16 @@ sequenceDiagram
 ```
 
 A role replies to the message it was given as soon as it has handled it, so each reply comes before the requests that role sends in the same turn. The order above is the order recorded in a real run.
+
+**Who may message whom.** The router's allowlist, and what is actually sent today:
+
+| From | May message | Sent today |
+| --- | --- | --- |
+| Supervisor | Every other role | `task.request`, to start each step |
+| Genetics | Pathways | `task.request`, for genes with genetic support |
+| Planner | The four specialists | `evidence.request`, to genetics, literature or clinical |
+| Critic | The four specialists | `evidence.challenge` to literature; `evidence.request` to genetics, literature or clinical |
+| Any role | Whoever asked it | `task.result`, as the reply |
 
 **The envelope.** Every message has the same typed shape: `message_id`, `correlation_id` (the whole conversation), `parent_id` (the message it answers), `run_id`, `sender`, `recipient`, `type`, `payload`, `evidence_ids`, `depth` and `idempotency_key`. The ids, lineage and depth are set by one builder (`messaging/envelope.py`), never by an agent. There are five types: `task.request`, `task.result`, `evidence.challenge`, `evidence.request` and `task.failed`. The router accepts `task.failed` as a reply, but no agent sends it today: a failing step ends the run honestly instead (incomplete or failed).
 
