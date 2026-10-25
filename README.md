@@ -4,7 +4,9 @@
 
 BioNexus is an evidence-review assistant for drug-target research. A scientist names a disease and up to five genes. A team of source specialists gathers evidence from public genetics, literature, pathway and clinical-trial sources, and AI reviewers plan further searches, flag and explain conflicts, check the findings and write the draft. The scientist **reviews, excludes what they distrust, and approves one exact report version**. Every claim cites the evidence behind it, every excluded record is listed with a reason, and the models and data versions used are recorded.
 
-**Status: MVP**, live on one AWS Lightsail host. Demo data is a small synthetic Crohn's disease sample; live mode uses six public databases. Research use only: it does not recommend treatment or claim that a gene causes a disease. What is not done yet, and what is not proven, is in [`docs/limits.md`](docs/limits.md).
+**Product:** [bionexus.tevaalgorithms.com](https://bionexus.tevaalgorithms.com). Sign-in is invite-only.
+
+**Status: MVP**, running on one AWS Lightsail host. Demo data is a small synthetic Crohn's disease sample; live mode uses six public databases. Research use only: it does not recommend treatment or claim that a gene causes a disease. What is not done yet, and what is not proven, is in [`docs/limits.md`](docs/limits.md).
 
 ## Why this exists
 
