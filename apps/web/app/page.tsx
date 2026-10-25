@@ -25,7 +25,7 @@ export default function Home() {
         <div className="brand"><Logo size={44} /> BioNexus AI</div>
         <div className="row"><a href="/login">Scientist sign-in</a><a className="button secondary" href="/admin/login">Admin sign-in</a></div>
       </header>
-      <main id="content">
+      <main id="content" className="landing">
         <section className="hero">
           <div>
             <p className="eyebrow">Accelerating scientific discovery to bring life-changing treatments closer to patients</p>

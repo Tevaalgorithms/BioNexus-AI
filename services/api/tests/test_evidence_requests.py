@@ -7,7 +7,6 @@ import httpx
 import pytest
 
 from bionexus.agents.base import AgentResult
-from bionexus.agents.genetics import GeneticsAgent
 from bionexus.agents.literature import LiteratureAgent
 from bionexus.contracts.errors import RouteRejected, SourceUnavailable
 from bionexus.contracts.evidence import EvidenceRecord, Stance
@@ -19,6 +18,7 @@ from bionexus.sources.http import GuardedHttp
 from bionexus.sources.live.clinical_trials import ClinicalTrialsSource
 from bionexus.sources.live.europe_pmc import EuropePmcSource
 from bionexus.sources.live.gwas import GwasCatalogSource
+from bionexus.specialists.genetics import GeneticsAgent
 from bionexus.workflow.budget import Budget
 from bionexus.workflow.state import RunState
 

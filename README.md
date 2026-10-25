@@ -253,7 +253,7 @@ How an investigation stays cheap and fast. Every lever is a named constant in on
 
 | # | What we did | Where |
 | --- | --- | --- |
-| **AO-1** | **Only roles that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `agents/base.py`, `agents/critic.py` |
+| **AO-1** | **Only roles that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `specialists/`, `agents/base.py`, `agents/critic.py` |
 | **AO-2** | **Small prompts.** A passage is cut to 300 characters. Only a second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
 | **AO-3** | **A cap on direction reading.** A model reads the direction of at most 10 papers. | `agents/literature.py` |
 | **AO-4** | **A cap on synthesis.** The synthesizer uses at most 40 accepted records. | `agents/synthesizer.py` |
@@ -377,7 +377,7 @@ Two different things are called "prompt caching", and only one of them is built 
 | Frontend | Next.js 16, React 19, TypeScript, plain CSS with light and dark themes |
 | Infrastructure | Terraform, Docker Compose with a Caddy TLS proxy, one Lightsail host |
 | Release | GitHub Actions: checks, build images to ECR, deploy over AWS SSM with GitHub OIDC (no SSH key, no stored AWS keys) |
-| Quality | Ruff with a complexity limit of 5, pytest (308 tests in 24 files, most run against both stores), Vitest, Bandit, pip-audit, npm audit, gitleaks, `terraform validate` |
+| Quality | Ruff with a complexity limit of 5, pytest (365 tests in 25 files, most run against both stores), Vitest, Bandit, pip-audit, npm audit, gitleaks, `terraform validate` |
 
 ## Repository structure
 
@@ -385,9 +385,10 @@ Two different things are called "prompt caching", and only one of them is built 
 services/api/                      Python backend
   bionexus/
     contracts/                     typed data models: evidence, messages, projects, identity, errors
-    agents/                        one file per role (the code calls every role an agent), a shared base, and the skill registry
+    agents/                        the roles that call a model: planner, literature, critic, verifier, synthesizer, plus the shared base
+    specialists/                   source specialists that need no model: genetics, pathways, clinical
     messaging/                     message envelope builder and the allowlisted router
-    workflow/                      LangGraph graph, step logic, dispatcher, budget, run executor, events
+    workflow/                      LangGraph graph, step logic, the supervisor (coordinator), dispatcher, budget, run executor, events
     llm/                           model catalogue, configuration releases, gateway, LangChain client
     sources/                       guarded HTTP, live/ (one module per public source), fixtures/ (synthetic)
     evidence/                      eligibility gate (licence, cutoff) and the study-family matrix
@@ -404,7 +405,7 @@ services/api/                      Python backend
     bootstrap.py                   builds the production container (PostgreSQL, Cognito)
     config.py, params.py           settings, and the .env / SSM source they come from
     observability.py               structured logs with opaque ids only
-  tests/                           308 tests in 24 files; most run against both stores
+  tests/                           365 tests in 25 files; most run against both stores
 apps/web/                          Next.js app
   app/                             routes only: (scientist)/, (admin)/, login, access-denied, api/ (auth, proxy, session)
   components/                      grouped by feature: ui/, layout/, auth/, projects/, runs/, admin/, help/

@@ -7,7 +7,6 @@ truth and the graph checkpoint only needs to remember where the run is.
 """
 
 from bionexus.agents.critic import CriticAgent, find_issues
-from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
 from bionexus.agents.verifier import apply_verifications
 from bionexus.contracts.errors import InvalidRequest, NoEvidenceFound, RunCancelled
@@ -22,6 +21,7 @@ from bionexus.storage.ports import AuditStore, MemoryStore, ReportRepository, Ru
 from bionexus.workflow.dispatcher import Dispatcher
 from bionexus.workflow.events import EventPublisher
 from bionexus.workflow.state import RunState
+from bionexus.workflow.supervisor import SupervisorAgent
 
 MAX_REPAIR_ROUNDS = 2
 

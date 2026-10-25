@@ -8,15 +8,11 @@ from pathlib import Path
 from langgraph.graph.state import CompiledStateGraph
 
 from bionexus.agents.base import AgentDeps
-from bionexus.agents.clinical import ClinicalAgent
 from bionexus.agents.critic import CriticAgent
-from bionexus.agents.genetics import GeneticsAgent
 from bionexus.agents.literature import LiteratureAgent
 from bionexus.agents.optimization import AO_RESPONSE_CACHE_ENTRIES
-from bionexus.agents.pathways import PathwaysAgent
 from bionexus.agents.planner import PlannerAgent
 from bionexus.agents.skills import SkillRegistry
-from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
 from bionexus.agents.verifier import VerifierAgent
 from bionexus.application.admin import AdminService
@@ -47,6 +43,9 @@ from bionexus.retrieval.service import RetrievalService
 from bionexus.sources.http import GuardedHttp
 from bionexus.sources.live import live_sources
 from bionexus.sources.registry import SourceRegistry
+from bionexus.specialists.clinical import ClinicalAgent
+from bionexus.specialists.genetics import GeneticsAgent
+from bionexus.specialists.pathways import PathwaysAgent
 from bionexus.storage.in_memory import in_memory_storage
 from bionexus.storage.ports import Storage
 from bionexus.workflow.dispatcher import Dispatcher
@@ -54,6 +53,7 @@ from bionexus.workflow.events import EventPublisher
 from bionexus.workflow.graph import build_graph
 from bionexus.workflow.nodes import MAX_REPAIR_ROUNDS, InvestigationNodes
 from bionexus.workflow.runner import RunExecutor
+from bionexus.workflow.supervisor import SupervisorAgent
 
 SKILL_VERSIONS = {
     "investigation.plan": "1.0.0",

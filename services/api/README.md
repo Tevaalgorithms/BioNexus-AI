@@ -7,7 +7,7 @@ over HTTP and shares no code with it.
 ## How a request flows
 
 ```text
-HTTP route (api/) → service (application/) → workflow (workflow/) → agents (agents/)
+HTTP route (api/) → service (application/) → workflow (workflow/) → roles (agents/, specialists/)
                                                                          ↓                    ↓
                                                                   storage (storage/)   sources (sources/) and models (llm/)
 ```
@@ -20,8 +20,9 @@ without HTTP.
 | Folder | What it holds |
 | --- | --- |
 | `contracts/` | Typed data models (evidence, messages, projects, errors). No logic and no I/O. |
-| `agents/` | One file per role, plus `base.py` (shared behaviour) and `skills.py`. |
-| `workflow/` | The LangGraph graph (`graph.py`), step logic (`nodes.py`), dispatcher, budget, events. |
+| `agents/` | The roles that call a model (planner, literature, critic, verifier, synthesizer), plus `base.py` (shared by every role), `skills.py` and `optimization.py`. |
+| `specialists/` | The source specialists that need no model: genetics, pathways, clinical. |
+| `workflow/` | The LangGraph graph (`graph.py`), step logic (`nodes.py`), the supervisor (the coordinator, plain code), dispatcher, budget, events. |
 | `llm/` | The model gateway, the approved-model catalogue, configuration releases, LangChain adapter. |
 | `sources/` | Guarded HTTP and `live/` (one module per public data source); `fixtures/` is synthetic sample data. |
 | `evidence/` | The eligibility gate (licence, date cut-off) and the study-family matrix. |
