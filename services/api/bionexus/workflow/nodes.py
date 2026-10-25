@@ -92,13 +92,22 @@ class InvestigationNodes:
 
     @staticmethod
     def _critic_task(state: RunState, round_number: int) -> AgentMessage:
+        return InvestigationNodes._task(state, AgentName.CRITIC, {"repair_round": round_number})
+
+    @staticmethod
+    def _task(state: RunState, recipient: AgentName, payload: dict) -> AgentMessage:
+        """A task from the supervisor, so the handoff is recorded like any other."""
         return new_message(
             run_id=state.run_id,
             sender=AgentName.SUPERVISOR,
-            recipient=AgentName.CRITIC,
+            recipient=recipient,
             kind=MessageType.TASK_REQUEST,
-            payload={"repair_round": round_number},
+            payload=payload,
         )
+
+    def coverage(self, state: RunState) -> None:
+        """The planner reviews what was found and may ask specialists to search again."""
+        self._dispatcher.run(state, [self._task(state, AgentName.PLANNER, {})])
 
     def retrieve(self, state: RunState) -> None:
         """Index accepted evidence, rank it for the question, and gather bounded graph context."""

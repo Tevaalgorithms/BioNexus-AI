@@ -1,0 +1,9 @@
+{
+  "skill_id": "coverage.plan",
+  "version": "1.0.0",
+  "owner": "planner",
+  "approved": true,
+  "instructions": "Review how much evidence was found for each gene and source. Propose a few extra searches that use only alternative names (a disease name or a gene alias) or a short qualifier. Never state or imply what the evidence says.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "Coverage already looks complete, or no useful alternative name is known."
+}

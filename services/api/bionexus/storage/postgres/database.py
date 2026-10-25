@@ -1,6 +1,10 @@
 """Connection handling shared by every PostgreSQL adapter."""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from langgraph.checkpoint.postgres import PostgresSaver
+from psycopg import Connection
 from psycopg.abc import Query
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
@@ -28,6 +32,12 @@ class Database:
     def execute(self, sql: Query, params: tuple | dict = ()) -> None:
         with self._pool.connection() as conn:
             conn.execute(sql, params)
+
+    @contextmanager
+    def transaction(self) -> Iterator[Connection]:
+        """Several statements as one unit: all are saved together, or none are if one fails."""
+        with self._pool.connection() as conn:  # commits on success, rolls back on an exception
+            yield conn
 
     def checkpoint_saver(self) -> PostgresSaver:
         """LangGraph's durable checkpoints. It needs its own autocommit connections."""

@@ -10,14 +10,17 @@ class PostgresReleases:
         self._db = db
 
     def add(self, release: ConfigRelease, *, activate: bool) -> None:
-        if activate:
-            self._db.execute("UPDATE releases SET is_active = false WHERE is_active")
         try:
-            self._db.execute(
-                "INSERT INTO releases (release_id, revision, payload, is_active)"
-                " VALUES (%s, %s, %s, %s)",
-                (release.release_id, release.revision, to_jsonb(release), activate),
-            )
+            # One transaction: if the insert fails, the old release stays active. Without it a
+            # failed insert would leave the system with no active release.
+            with self._db.transaction() as conn:
+                if activate:
+                    conn.execute("UPDATE releases SET is_active = false WHERE is_active")
+                conn.execute(
+                    "INSERT INTO releases (release_id, revision, payload, is_active)"
+                    " VALUES (%s, %s, %s, %s)",
+                    (release.release_id, release.revision, to_jsonb(release), activate),
+                )
         except Exception as error:  # unique revision violated by a concurrent admin edit
             raise Conflict("Another admin changed the configuration first") from error
 

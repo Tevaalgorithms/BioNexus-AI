@@ -14,6 +14,7 @@ from bionexus.agents.genetics import GeneticsAgent
 from bionexus.agents.literature import LiteratureAgent
 from bionexus.agents.optimization import AO_RESPONSE_CACHE_ENTRIES
 from bionexus.agents.pathways import PathwaysAgent
+from bionexus.agents.planner import PlannerAgent
 from bionexus.agents.skills import SkillRegistry
 from bionexus.agents.supervisor import SupervisorAgent
 from bionexus.agents.synthesizer import SynthesizerAgent
@@ -59,6 +60,7 @@ SKILL_VERSIONS = {
     "trials.context": "1.0.0",
     "evidence.critique": "1.0.0",
     "report.synthesize": "1.0.0",
+    "coverage.plan": "1.0.0",
 }
 
 FIXTURE_MODELS = [
@@ -149,6 +151,7 @@ def build_agents(deps: AgentDeps) -> tuple[SupervisorAgent, CriticAgent, Synthes
         AgentName.PATHWAYS: PathwaysAgent(deps),
         AgentName.CLINICAL: ClinicalAgent(deps),
         AgentName.CRITIC: critic,
+        AgentName.PLANNER: PlannerAgent(deps),
     }
     return supervisor, critic, synthesizer, handlers
 
@@ -198,6 +201,7 @@ def build_container(
     clients = clients if clients is not None else LazyClients()
     releases = ReleaseStore(registry, storage.releases)
     releases.seed(initial or default_release())
+    releases.ensure_complete(AgentName.SYNTHESIZER, SKILL_VERSIONS)  # agents added by an upgrade
     cache = ResponseCache(AO_RESPONSE_CACHE_ENTRIES)
     gateway = ModelGateway(registry, releases, clients, storage.flags, cache)
     sources = sources or build_sources(live=settings_provider().live_sources)

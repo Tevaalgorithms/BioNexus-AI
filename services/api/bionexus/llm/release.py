@@ -23,6 +23,39 @@ class ReleaseStore:
         if not self._repository.history():
             self._repository.add(initial, activate=True)
 
+    def ensure_complete(
+        self, template: AgentName, skill_versions: dict[str, str]
+    ) -> ConfigRelease | None:
+        """Add any agent or skill the active release lacks, as a new release (history is kept).
+
+        A product upgrade can add agents. A release saved before that has no binding for them, so
+        they borrow the `template` agent's models. Returns the new release, or None if nothing was
+        missing or another process added it first.
+        """
+        current = self.active()
+        agents = [a for a in AgentName if a not in current.bindings]
+        skills = {k: v for k, v in skill_versions.items() if k not in current.skill_versions}
+        if not agents and not skills:
+            return None
+        revision = current.revision + 1
+        release = current.model_copy(
+            update={
+                "release_id": f"rel-{revision}",
+                "revision": revision,
+                "bindings": {**current.bindings, **{a: current.bindings[template] for a in agents}},
+                "skill_versions": {**current.skill_versions, **skills},
+                "created_by": "system",
+                "reason": f"added to this release: {', '.join([*agents, *skills])}",
+                "parent_id": current.release_id,
+                "created_at": datetime.now(UTC),
+            }
+        )
+        try:
+            self._repository.add(release, activate=True)
+        except Conflict:  # another process upgraded first
+            return None
+        return release
+
     def active(self) -> ConfigRelease:
         return self._repository.active()
 

@@ -67,13 +67,14 @@ class CountingGateway:
         return self.answer
 
 
-# AO-1: only the agents that need a model call one --------------------------------------------
+# AO-1: an agent whose output is retrieved evidence makes no model call --------------------------
 
 
-def test_only_literature_and_the_synthesizer_call_a_model(container, request_):
+def test_retrieval_agents_and_the_supervisor_make_no_model_call(container, request_):
     state = run_to_review(container, request_)
     callers = {i.agent for i in state.invocations}
-    assert callers and callers <= {AgentName.LITERATURE, AgentName.SYNTHESIZER}
+    plain_code = {AgentName.SUPERVISOR, AgentName.GENETICS, AgentName.PATHWAYS, AgentName.CLINICAL}
+    assert callers and callers.isdisjoint(plain_code)
 
 
 # AO-3: the direction calls are capped ---------------------------------------------------------

@@ -1,10 +1,10 @@
 """The investigation as a LangGraph state graph.
 
-    scope -> recall_memory -> specialists -> critique <-+  (loop while repairs remain, max 2 rounds)
-                                                |       |
-                                                +-------+
-                              critique -> retrieve -> synthesize -> finalize
-                                       -> await_review (human interrupt) -> complete
+    scope -> recall_memory -> specialists -> coverage -> critique <-+  (repair loop, max 2 rounds)
+                                                            |       |
+                                                            +-------+
+    critique -> retrieve -> synthesize -> finalize
+             -> await_review (human interrupt) -> complete
 
 What LangGraph is used for here: the explicit graph shape, the bounded repair loop, retry of
 transient source failures, durable checkpoints (resume after a crash at the exact step), and the
@@ -58,7 +58,8 @@ LINEAR_EDGES = [
     (START, "scope"),
     ("scope", "recall_memory"),
     ("recall_memory", "specialists"),
-    ("specialists", "critique"),
+    ("specialists", "coverage"),
+    ("coverage", "critique"),
     ("retrieve", "synthesize"),
     ("synthesize", "finalize"),
     ("finalize", "await_review"),
@@ -71,6 +72,10 @@ class InvestigationGraph:
     def __init__(self, nodes: InvestigationNodes, disabled: frozenset[str] = frozenset()) -> None:
         self._nodes = nodes
         self._disabled = disabled  # steps turned into no-ops (evaluation ablations)
+
+    def _coverage(self, state: RunState, gs: GraphState) -> None:
+        if "coverage" not in self._disabled:
+            self._nodes.coverage(state)
 
     def _critique(self, state: RunState, gs: GraphState) -> dict:
         round_number = gs.get("repair_round", 0)
@@ -104,6 +109,7 @@ class InvestigationGraph:
             "scope": lambda s, gs: n.scope(s),
             "recall_memory": lambda s, gs: n.recall_memory(s),
             "specialists": lambda s, gs: n.specialists(s),
+            "coverage": self._coverage,
             "critique": self._critique,
             "retrieve": lambda s, gs: n.retrieve(s),
             "synthesize": lambda s, gs: n.synthesize(s),
