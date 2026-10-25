@@ -26,8 +26,8 @@ scan), and `terraform validate`.
 
 ## Known limits
 
-See [`docs/limits.md`](docs/limits.md). In short: not yet run against a real Cognito
-pool or deployed; the API has no rate limiting yet; the web app's Content-Security-Policy allows inline scripts
+See [`docs/limits.md`](docs/limits.md). In short: it runs on a single host with no
+high availability; the API has no general rate limiting (only a daily cap on user invitations); the web app's Content-Security-Policy allows inline scripts
 (needed for the theme setting and Next.js); sessions are held in server memory.
 
 ## Stopping secrets from reaching GitHub
