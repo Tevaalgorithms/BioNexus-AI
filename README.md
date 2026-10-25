@@ -101,21 +101,7 @@ Sequence diagrams and a step-to-code map: [`docs/architecture.md`](docs/architec
 
 ### The roles
 
-Nine roles, each with one job. Five call an AI model where a judgement is needed; four are plain code. The code calls every role an "agent", but they are not alike, so they are grouped by what they do:
-
-| Role | Kind | Job | Calls a model for |
-| --- | --- | --- | --- |
-| Supervisor | Coordinator | Plans the run and starts each step. Which roles run is never left to a model. | Nothing |
-| Genetics | Source specialist | Open Targets and GWAS Catalog. Asks pathways for context on genetically supported genes. | Nothing |
-| Literature | Source specialist | Europe PMC papers. Reads direction where a source states none (labelled unreviewed). | Paper direction, second looks |
-| Pathways | Source specialist | Reactome and Monarch, only when genetics asks. | Nothing |
-| Clinical | Source specialist | Registered trials from ClinicalTrials.gov. | Nothing |
-| Planner | AI reviewer | Reads record counts, not evidence, and may ask for up to 4 extra searches. | Proposing searches |
-| Critic | AI reviewer | Finds missing passages, conflicts and single-study support, and asks for passages or more evidence. | Explaining conflicts |
-| Synthesizer | AI reviewer | Writes claims per gene from accepted evidence, each citing record ids. Blocked wording ("causes", "cures") is replaced. | The summary narrative |
-| Verifier | AI reviewer | Rebuilds each claim by code and checks summary sentences. Unsupported ones are withheld and listed. | Comparing sentences with claims |
-
-Each role in full: [`docs/architecture.md`](docs/architecture.md#the-roles-in-detail).
+Nine roles, each with one job: a coordinator, four source specialists and four AI reviewers. Five call an AI model; four are plain code. Who does what, and what each uses a model for: [`docs/architecture.md`](docs/architecture.md#the-roles-in-detail).
 
 **Which model?** An admin binds each model-using role to a model in **Team & models**, and every change is validated and saved as a new release. Locally the models are placeholders, so the demo needs no key. Each role's instructions are a versioned, hashed file in `skills/`.
 

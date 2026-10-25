@@ -6,6 +6,20 @@ code does each step. File names are relative to `services/api/bionexus/`. See al
 
 ## The roles in detail
 
+At a glance:
+
+| Role | Kind | Job | Calls a model for |
+| --- | --- | --- | --- |
+| Supervisor | Coordinator | Plans the run and starts each step. Which roles run is never left to a model. | Nothing |
+| Genetics | Source specialist | Open Targets and GWAS Catalog. Asks pathways for context on genetically supported genes. | Nothing |
+| Literature | Source specialist | Europe PMC papers. Reads direction where a source states none (labelled unreviewed). | Paper direction, second looks |
+| Pathways | Source specialist | Reactome and Monarch, only when genetics asks. | Nothing |
+| Clinical | Source specialist | Registered trials from ClinicalTrials.gov. | Nothing |
+| Planner | AI reviewer | Reads record counts, not evidence, and may ask for up to 4 extra searches. | Proposing searches |
+| Critic | AI reviewer | Finds missing passages, conflicts and single-study support, and asks for passages or more evidence. | Explaining conflicts |
+| Synthesizer | AI reviewer | Writes claims per gene from accepted evidence, each citing record ids. Blocked wording ("causes", "cures") is replaced. | The summary narrative |
+| Verifier | AI reviewer | Rebuilds each claim by code and checks summary sentences. Unsupported ones are withheld and listed. | Comparing sentences with claims |
+
 Nine roles, each with one job. Five use an AI model where a judgement is needed; four are plain code.
 
 **A note on the word "agent".** In the code every role is called an agent, and this README sometimes uses the word as shorthand. But the roles are not alike, so they are grouped by what they actually do:
