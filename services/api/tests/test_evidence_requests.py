@@ -253,7 +253,7 @@ def test_literature_reads_the_direction_of_papers_found_with_a_hint(state):
     agent = LiteratureAgent(
         SimpleNamespace(sources=SimpleNamespace(get=lambda n: source), gateway=gateway)
     )
-    agent.instructions = lambda s: "skill"
+    agent.instructions = lambda s, skill_id=None: "skill"
     result = agent.handle(request_message(state, kind="context", text="East Asian"), state)
     assert [r.stance for r in result.evidence] == [Stance.OPPOSES] and gateway.calls == 1
     assert isinstance(result, AgentResult)

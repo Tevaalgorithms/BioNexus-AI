@@ -8,9 +8,11 @@ export const STAGES: StageInfo[] = [
   { id: "scope", label: "Check request", icon: "check", plain: "Confirms the question is complete and within pilot limits." },
   { id: "recall_memory", label: "Recall reviewed work", icon: "book", plain: "Reuses evidence your team already reviewed in this project (never unreviewed work)." },
   { id: "specialists", label: "Gather evidence", icon: "search", plain: "Genetics, literature and clinical agents query their sources in parallel. Genetics can ask pathways for context on genes with genetic support." },
-  { id: "critique", label: "Challenge & repair", icon: "scale", plain: "A critic looks for contradictions and missing support. It asks the literature agent for missing passages and for a second look at directions a model read; what stays unresolved is reported." },
+  { id: "coverage", label: "Review coverage", icon: "compass", plain: "A planner checks what was found for each gene and source, and asks specialists to search again with another name or qualifier where coverage looks thin." },
+  { id: "critique", label: "Challenge & repair", icon: "scale", plain: "A critic looks for contradictions and missing support. It asks the literature agent for missing passages and a second look at directions a model read, explains whether a conflict is real, and can ask a specialist for more evidence; what stays unresolved is reported." },
   { id: "retrieve", label: "Rank & connect", icon: "graph", plain: "Ranks the accepted evidence for your question and maps how it connects." },
   { id: "synthesize", label: "Write findings", icon: "pen", plain: "Drafts claims that cite only accepted evidence. No causal or treatment statements." },
+  { id: "verify", label: "Verify findings", icon: "review", plain: "A verifier rebuilds each claim from the evidence it cites and compares each sentence of the summary with the claims. Anything unsupported is withheld and listed." },
   { id: "finalize", label: "Build report", icon: "doc", plain: "Assembles the draft report and a reproducibility record." },
   { id: "complete", label: "Your approval", icon: "shield", plain: "Waits for a scientist to review and approve one exact report version." },
 ];
@@ -19,12 +21,14 @@ export const STAGES: StageInfo[] = [
 export interface AgentInfo { id: string; name: string; icon: IconName; role: string; sources: string[]; sourcesText: string; modelUse: string | null }
 
 export const AGENTS: AgentInfo[] = [
-  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work: always starts genetics, literature and clinical. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates", modelUse: null },
-  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, with the direction of effect and study context where the source gives them. Asks pathways for context on genes it finds support for.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog", modelUse: null },
-  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies; a finding can be cited only if a passage you can open backs it. Where a paper states no direction, a model reads it and the result is labelled unreviewed. Answers the critic's requests for a passage or a second look.", sources: ["europe_pmc"], sourcesText: "Europe PMC", modelUse: "Reading the direction of papers that state none, and second looks" },
+  { id: "supervisor", name: "Supervisor", icon: "compass", role: "Plans the work: starts genetics, literature and clinical, then the planner, critic and verifier. Never decides what the evidence says.", sources: [], sourcesText: "Coordinates", modelUse: null },
+  { id: "planner", name: "Planner", icon: "compass", role: "Reviews what the specialists found and asks them to search again with another name or qualifier where coverage looks thin. It sees only counts, never the evidence text, and cannot add or judge evidence.", sources: [], sourcesText: "Reviews coverage", modelUse: "Proposing extra searches" },
+  { id: "genetics", name: "Genetics", icon: "dna", role: "Finds genetic associations between your genes and the disease, with the direction of effect and study context where the source gives them. Asks pathways for context on genes it finds support for, and answers requests for more evidence.", sources: ["open_targets", "gwas"], sourcesText: "Open Targets, GWAS Catalog", modelUse: null },
+  { id: "literature", name: "Literature", icon: "book", role: "Reads published studies; a finding can be cited only if a passage you can open backs it. Where a paper states no direction, a model reads it and the result is labelled unreviewed. Answers the critic's requests for a passage or a second look, and requests for more evidence.", sources: ["europe_pmc"], sourcesText: "Europe PMC", modelUse: "Reading the direction of papers that state none, and second looks" },
   { id: "pathways", name: "Pathways", icon: "path", role: "Adds biological context: curated pathways and phenotype data. Only asked by genetics. Annotation is not proof of mechanism.", sources: ["reactome", "monarch"], sourcesText: "Reactome, Monarch", modelUse: null },
   { id: "clinical", name: "Clinical context", icon: "flask", role: "Notes registered clinical trials and their status. Registration is not evidence a treatment works.", sources: ["clinicaltrials"], sourcesText: "ClinicalTrials.gov", modelUse: null },
-  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study. Asks the literature agent for missing passages and to re-read conflicting directions a model assigned; what it cannot resolve stays listed.", sources: [], sourcesText: "Reviews all evidence", modelUse: null },
+  { id: "critic", name: "Evidence critic", icon: "scale", role: "Looks for contradictions, missing passages and over-reliance on one study. Asks the literature agent for missing passages and to re-read conflicting directions a model assigned. A model explains whether a conflict is real or may be explained (for example by population or assay) and can ask a specialist for more evidence. Explanations are unreviewed; what it cannot resolve stays listed.", sources: [], sourcesText: "Reviews all evidence", modelUse: "Explaining conflicts, and asking for more evidence" },
+  { id: "verifier", name: "Verifier", icon: "review", role: "Checks the findings before the report is built. Each claim is rebuilt from the evidence it cites by plain code, and each sentence of the summary is compared with the claims by a model. Unsupported claims and sentences are withheld and listed.", sources: [], sourcesText: "Checks the findings", modelUse: "Comparing summary sentences with the claims" },
   { id: "synthesizer", name: "Synthesizer", icon: "pen", role: "Writes the draft using only evidence that was accepted; blocks causal and treatment language.", sources: [], sourcesText: "Writes the report", modelUse: "Writing the short summary narrative" },
 ];
 
@@ -39,6 +43,8 @@ export const GLOSSARY: { term: string; meaning: string }[] = [
   { term: "Evidence cutoff", meaning: "Only evidence available on or before this date is used, so results can be reproduced and compared fairly." },
   { term: "Draft vs approved", meaning: "Every report starts as a draft. It becomes approved only when a scientist approves that exact version." },
   { term: "Second look", meaning: "When studies conflict, the critic asks the literature agent to re-read a direction that a model assigned, this time against the full passage. The new answer is labelled unreviewed. Directions that come straight from a database are reported, not re-read." },
+  { term: "Withheld", meaning: "The verifier found a claim or a summary sentence that the evidence does not support, so it is left out of the report and listed instead. Nothing is invented to replace it." },
+  { term: "Coverage", meaning: "How much evidence was found for each gene, by source. The planner uses it to ask specialists to search again with another name when it looks thin." },
   { term: "Handoff", meaning: "One agent asking another for help, for example genetics asking pathways for context. Every handoff is recorded." },
   { term: "Incomplete", meaning: "The run stopped early (for example a budget limit or a source outage). What was found is shown; nothing is invented to fill the gap." },
   { term: "Configuration release", meaning: "The exact set of models, skills and prompts a run used. It is fixed when the run starts, so later admin changes never alter a run in progress." },
@@ -69,4 +75,5 @@ export const STANCE_HELP: Record<string, string> = {
 export const SKILL_FOR: Record<string, string> = {
   supervisor: "investigation.plan", genetics: "genetics.assess", literature: "literature.assess",
   pathways: "mechanism.context", clinical: "trials.context", critic: "evidence.critique", synthesizer: "report.synthesize",
+  planner: "coverage.plan", verifier: "claims.verify",
 };

@@ -11,8 +11,9 @@ const challengeKind = (ask?: string | null) => (ask?.includes("recheck") ? "Seco
 function describe(e: RunEvent): string {
   if (e.kind === "stage.completed") return `Finished: ${stageName(e.data.stage)}`;
   if (e.kind === "agent.handoff") {
-    const verb = e.data.type === "evidence.challenge" ? "challenged" : e.data.type === "task.result" ? "replied to" : "asked";
-    const detail = e.data.type === "evidence.challenge" ? ` (${challengeKind(e.data.ask).toLowerCase()})` : "";
+    const verbs: Record<string, string> = { "evidence.challenge": "challenged", "evidence.request": "asked for more evidence from", "task.result": "replied to" };
+    const verb = verbs[e.data.type] ?? "asked";
+    const detail = e.data.type === "evidence.challenge" ? ` (${challengeKind(e.data.ask).toLowerCase()})` : e.data.hint ? ` (“${e.data.hint}”)` : "";
     return `${agentName(e.data.from)} ${verb} ${agentName(e.data.to)}${detail}`;
   }
   return `Run ${String(e.data.status).replaceAll("_", " ")}${e.data.reason ? `: ${e.data.reason}` : ""}`;
@@ -41,7 +42,7 @@ export function Timeline({ detail }: { detail: RunDetail }) {
         <thead><tr><th>From</th><th>To</th><th>What</th><th>Evidence</th></tr></thead>
         <tbody>{detail.timeline.map((m) => (
           <tr key={m.message_id}><td>{agentName(m.from)}</td><td>{agentName(m.to)}</td>
-            <td>{m.type === "task.request" ? "Task" : m.type === "task.result" ? "Reply" : m.type === "evidence.challenge" ? `Challenge: ${challengeKind(m.ask).toLowerCase()}` : m.type}</td>
+            <td>{m.type === "task.request" ? "Task" : m.type === "task.result" ? "Reply" : m.type === "evidence.challenge" ? `Challenge: ${challengeKind(m.ask).toLowerCase()}` : m.type === "evidence.request" ? `Request: more evidence${m.hint ? ` (“${m.hint}”)` : ""}` : m.type}</td>
             <td>{m.evidence_ids.join(", ") || "-"}</td></tr>
         ))}</tbody>
       </table></div>

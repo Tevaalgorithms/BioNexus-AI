@@ -14,6 +14,7 @@ from bionexus.contracts.investigation import (
 )
 from bionexus.contracts.invocation import Invocation
 from bionexus.contracts.messages import AgentMessage
+from bionexus.contracts.review import ConflictAnalysis, Verification
 from bionexus.workflow.budget import Budget
 
 
@@ -33,6 +34,8 @@ class RunState(BaseModel):
     messages: list[AgentMessage] = Field(default_factory=list)
     invocations: list[Invocation] = Field(default_factory=list)
     issues: list[Issue] = Field(default_factory=list)
+    analyses: dict[str, ConflictAnalysis] = Field(default_factory=dict)  # by gene
+    verifications: list[Verification] = Field(default_factory=list)
     claims: list[Claim] = Field(default_factory=list)
     narrative: str = ""
     report_id: str | None = None

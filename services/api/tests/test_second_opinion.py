@@ -67,14 +67,14 @@ def state(request_):
 
 def critic(gateway=None) -> CriticAgent:
     agent = CriticAgent(SimpleNamespace(gateway=gateway or FakeGateway()))
-    agent.instructions = lambda state: "skill"
+    agent.instructions = lambda state, skill_id=None: "skill"
     return agent
 
 
 def literature(passage: str | None, answer: str) -> tuple[LiteratureAgent, FakeGateway]:
     gateway = FakeGateway(answer)
     agent = LiteratureAgent(SimpleNamespace(sources=FakeSources(passage), gateway=gateway))
-    agent.instructions = lambda state: "skill"
+    agent.instructions = lambda state, skill_id=None: "skill"
     return agent, gateway
 
 

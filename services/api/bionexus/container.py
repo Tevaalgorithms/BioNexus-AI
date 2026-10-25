@@ -61,6 +61,8 @@ SKILL_VERSIONS = {
     "evidence.critique": "1.0.0",
     "report.synthesize": "1.0.0",
     "coverage.plan": "1.0.0",
+    "conflict.analyse": "1.0.0",
+    "claims.verify": "1.0.0",
 }
 
 FIXTURE_MODELS = [

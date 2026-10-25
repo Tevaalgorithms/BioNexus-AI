@@ -12,6 +12,7 @@ from bionexus.contracts.errors import SourceUnavailable
 from bionexus.contracts.evidence import EvidenceRecord, Exclusion, Issue
 from bionexus.contracts.hints import SearchHint, clean_hint
 from bionexus.contracts.messages import AgentMessage, AgentName, MessageType
+from bionexus.contracts.review import ConflictAnalysis, Verification
 from bionexus.evidence.eligibility import partition_eligible
 from bionexus.llm.gateway import ModelGateway
 from bionexus.llm.release import ReleaseStore
@@ -39,6 +40,8 @@ class AgentResult(BaseModel):
     excluded: list[Exclusion] = Field(default_factory=list)
     issues: list[Issue] = Field(default_factory=list)
     outgoing: list[AgentMessage] = Field(default_factory=list)
+    analyses: list[ConflictAnalysis] = Field(default_factory=list)
+    verifications: list[Verification] = Field(default_factory=list)
     assessment: str = ""
     abstained: bool = False
 
@@ -50,15 +53,14 @@ class Agent(ABC):
     def __init__(self, deps: AgentDeps) -> None:
         self.deps = deps
 
-    def instructions(self, state: RunState) -> str:
-        """The skill text pinned by the run's configuration release."""
+    def instructions(self, state: RunState, skill_id: str | None = None) -> str:
+        """The skill text pinned by the run's configuration release (default: the agent's own)."""
+        skill_id = skill_id or self.skill_id
         release = self.deps.releases.get(state.release_id)
-        return self.deps.skills.get(
-            self.skill_id, release.skill_versions[self.skill_id]
-        ).instructions
+        return self.deps.skills.get(skill_id, release.skill_versions[skill_id]).instructions
 
-    def ask_model(self, state: RunState, task_summary: str) -> str:
-        prompt = f"{self.instructions(state)}\n{task_summary}"
+    def ask_model(self, state: RunState, task_summary: str, skill_id: str | None = None) -> str:
+        prompt = f"{self.instructions(state, skill_id)}\n{task_summary}"
         return self.deps.gateway.complete(state, self.name, prompt)
 
     @abstractmethod

@@ -17,7 +17,11 @@ export interface RunDetail extends RunSummary {
   question: string; evidence_cutoff: string; matrix: MatrixRow[]; evidence: Evidence[]; claims: Claim[];
   issues: Issue[]; excluded: { evidence_id: string; reason: string }[]; next_steps: string[];
   completeness: { source: string; retained: number; excluded: number; status: string }[];
-  graph_context: string[]; timeline: { message_id: string; from: string; to: string; type: string; depth: number; evidence_ids: string[]; ask?: string | null }[];
+  graph_context: string[]; timeline: { message_id: string; from: string; to: string; type: string; depth: number; evidence_ids: string[]; ask?: string | null; hint?: string | null }[];
+  /** The critic's reading of each conflict. A model wrote it; it is unreviewed. */
+  analyses: { target: string; verdict: string; explanation: string }[];
+  /** The verifier's checks. `unsupported` items are withheld from the report. */
+  verifications: { kind: string; subject: string; text: string; verdict: string; reason: string }[];
 }
 export interface Report {
   report_id: string; run_id: string; version: number; status: "draft" | "approved"; parent_version: number | null;

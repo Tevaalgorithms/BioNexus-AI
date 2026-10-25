@@ -98,7 +98,7 @@ export default function Home() {
             <p className="eyebrow">How it works</p>
             <h2>A coordinated team, with every handoff recorded</h2>
             <TeamDiagram />
-            <h3 style={{ marginTop: 28 }}>From question to approved report in eight visible steps</h3>
+            <h3 style={{ marginTop: 28 }}>{`From question to approved report in ${STAGES.length} visible steps`}</h3>
             <div className="how">
               {STAGES.map((s, i) => (
                 <div className="tile" key={s.id}><div className="num">{i + 1}</div><strong><Icon name={s.icon} size={16} /> {s.label}</strong><p className="hint">{s.plain}</p></div>

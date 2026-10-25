@@ -1,12 +1,26 @@
-"""Evidence critic: finds problems and asks the right specialist for bounded repairs."""
+"""Evidence critic: finds problems, explains conflicts, and asks specialists for bounded repairs.
 
+Plain code finds the problems (a missing passage, a conflict, one study family). A model then reads
+each conflict and says whether it looks real or could be explained, and may ask a specialist for
+more evidence. That explanation is unreviewed model text and is labelled so.
+"""
+
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import ClassVar
 
 from bionexus.agents.base import Agent, AgentResult
-from bionexus.agents.optimization import AO_MAX_RECHECKS_PER_ROUND
+from bionexus.agents.conflict import conflict_prompt, read_analysis, sides
+from bionexus.agents.evidence_requests import PlannedRequest, request_message
+from bionexus.agents.optimization import (
+    AO_MAX_CONFLICT_ANALYSES,
+    AO_MAX_PARALLEL_MODEL_CALLS,
+    AO_MAX_RECHECKS_PER_ROUND,
+)
+from bionexus.contracts.errors import ModelUnavailable
 from bionexus.contracts.evidence import EvidenceRecord, Issue, IssueKind
 from bionexus.contracts.messages import AgentMessage, AgentName, ChallengeAsk, MessageType
+from bionexus.contracts.review import ConflictAnalysis
 from bionexus.evidence.matrix import build_matrix
 from bionexus.evidence.stance import is_model_read
 from bionexus.messaging.envelope import new_message
@@ -15,6 +29,7 @@ from bionexus.workflow.state import RunState
 
 CHALLENGEABLE_SOURCES = frozenset({"europe_pmc"})
 MESSAGE_RESERVE = 6  # room kept for the critic's own task and reply, and the verifier's
+CONFLICT_SKILL = "conflict.analyse"  # the skill that guides the explanation
 
 
 @dataclass(frozen=True)
@@ -79,10 +94,55 @@ class CriticAgent(Agent):
     def handle(self, message: AgentMessage, state: RunState) -> AgentResult:
         issues = find_issues(list(state.evidence.values()))
         challenges = [self._challenge(message, state, r) for r in self.pending_repairs(state)]
+        room = self._room(state) - len(challenges)
+        analyses, requests = self._analyse(message, state, issues, room)
         note = (
-            f"{len(issues)} open issues; {len(challenges)} challenges sent."  # no model call (AO-1)
+            f"{len(issues)} open issues; {len(challenges)} challenges and {len(requests)} requests."
         )
-        return AgentResult(issues=issues, outgoing=challenges, assessment=note)
+        return AgentResult(
+            issues=issues, outgoing=[*challenges, *requests], analyses=analyses, assessment=note
+        )
+
+    def has_work(self, state: RunState) -> bool:
+        """True while something can still be asked or explained (the repair loop's condition)."""
+        issues = find_issues(list(state.evidence.values()))
+        return bool(self.pending_repairs(state)) or bool(self._unanalysed(issues, state))
+
+    @staticmethod
+    def _unanalysed(issues: list[Issue], state: RunState) -> list[Issue]:
+        """Conflicts not yet explained, a few per round."""
+        new = [
+            i
+            for i in issues
+            if i.kind is IssueKind.CONTRADICTION and i.subject not in state.analyses
+        ]
+        return new[:AO_MAX_CONFLICT_ANALYSES]
+
+    def _analyse(
+        self, parent: AgentMessage, state: RunState, issues: list[Issue], room: int
+    ) -> tuple[list[ConflictAnalysis], list[AgentMessage]]:
+        """A model reads each conflict (in parallel); any extra search it wants is requested."""
+        pending = self._unanalysed(issues, state)
+        if not pending:
+            return [], []
+        with ThreadPoolExecutor(max_workers=AO_MAX_PARALLEL_MODEL_CALLS) as pool:
+            judged = list(pool.map(lambda issue: self._judge(state, issue.subject), pending))
+        done = [j for j in judged if j is not None]
+        wanted = [req for _, req in done if req is not None][: max(0, room)]
+        requests = [request_message(self.name, parent, state, req) for req in wanted]
+        return [analysis for analysis, _ in done], requests
+
+    def _judge(
+        self, state: RunState, target: str
+    ) -> tuple[ConflictAnalysis, PlannedRequest | None] | None:
+        supporting, opposing = sides(list(state.evidence.values()), target)
+        try:
+            reply = self.ask_model(
+                state, conflict_prompt(target, supporting, opposing), CONFLICT_SKILL
+            )
+        except ModelUnavailable:  # the explanation is optional: no model, no explanation
+            return None
+        return read_analysis(reply, target)
 
     def pending_repairs(self, state: RunState) -> list[Repair]:
         """Challenges a specialist can act on, not yet sent, that fit the message budget."""

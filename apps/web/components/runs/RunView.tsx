@@ -76,6 +76,27 @@ export default function RunView({ runId }: { runId: string }) {
   );
 }
 
+/** What the critic explained and what the verifier withheld. Both are model-assisted and unreviewed. */
+function Reviews({ d }: { d: RunDetail }) {
+  const explained = d.analyses.filter((a) => a.explanation);
+  const withheld = d.verifications.filter((v) => v.verdict === "unsupported");
+  const unchecked = d.verifications.filter((v) => v.verdict === "unchecked").length;
+  return (
+    <section className="card" aria-labelledby="reviews-h">
+      <h2 id="reviews-h">Review notes <InfoTip label="review notes">Written by the critic and the verifier. A model helped write the explanations, so treat them as a prompt for your own judgement, not as a finding.</InfoTip></h2>
+      <h3>Conflicts explained</h3>
+      {explained.length === 0 ? <Empty>No conflict was explained.</Empty> : (
+        <ul>{explained.map((a) => <li key={a.target}><strong>{a.target}</strong> <span className="badge info">{a.verdict}</span> {a.explanation} <span className="hint">(unreviewed)</span></li>)}</ul>
+      )}
+      <h3>Withheld by the verifier</h3>
+      {withheld.length === 0 ? <Empty>Nothing was withheld.</Empty> : (
+        <ul>{withheld.map((v) => <li key={v.subject}><strong>{v.kind === "claim" ? v.subject : "A summary sentence"}</strong>: {v.text} <span className="hint">Withheld because {v.reason || "the evidence does not support it"}.</span></li>)}</ul>
+      )}
+      {unchecked > 0 && <p className="hint">{unchecked} summary {unchecked === 1 ? "sentence" : "sentences"} could not be checked and {unchecked === 1 ? "is" : "are"} kept.</p>}
+    </section>
+  );
+}
+
 function Limitations({ d }: { d: RunDetail }) {
   return (
     <>
@@ -90,6 +111,7 @@ function Limitations({ d }: { d: RunDetail }) {
           ))}</tbody>
         </table></div>
       </section>
+      <Reviews d={d} />
       <section className="card" aria-labelledby="issues-h">
         <h2 id="issues-h">Open issues</h2>
         {d.issues.length === 0 ? <Empty>No open issues.</Empty> : <ul>{d.issues.map((i) => <li key={i.issue_id}>{i.description}</li>)}</ul>}

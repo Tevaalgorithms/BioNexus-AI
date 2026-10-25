@@ -53,7 +53,7 @@ def literature(gateway, records=()) -> LiteratureAgent:
         get=lambda name: SimpleNamespace(search=lambda d, t, hint=None: list(records))
     )
     agent = LiteratureAgent(SimpleNamespace(gateway=gateway, sources=sources))
-    agent.instructions = lambda state: "skill"
+    agent.instructions = lambda state, skill_id=None: "skill"
     return agent
 
 

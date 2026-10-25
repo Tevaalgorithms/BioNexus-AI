@@ -55,3 +55,5 @@ class Dispatcher:
     def _merge(state: RunState, result: AgentResult) -> None:
         state.add_evidence(result.evidence)
         state.excluded.extend(result.excluded)
+        state.analyses.update({a.target: a for a in result.analyses})
+        state.verifications.extend(result.verifications)

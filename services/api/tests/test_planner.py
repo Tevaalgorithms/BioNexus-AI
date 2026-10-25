@@ -59,7 +59,7 @@ def planner(reply: str | Exception) -> PlannerAgent:
             return reply
 
     agent = PlannerAgent(SimpleNamespace(gateway=Gateway()))
-    agent.instructions = lambda state: "skill"
+    agent.instructions = lambda state, skill_id=None: "skill"
     return agent
 
 

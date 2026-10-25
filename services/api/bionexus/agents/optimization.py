@@ -19,6 +19,10 @@ COST: fewer and smaller model calls
   AO-8  The planner reads a short coverage table, not the evidence, and may ask for at most
         AO_MAX_PLANNER_REQUESTS extra searches. A request is answered by a search, not a model call.
 
+  AO-9  The critic explains each conflict once, and shows the model only a few records per side.
+  AO-10 The verifier checks claims with plain code, a summary sentence that is a claim word for
+        word needs no model call, and at most AO_MAX_VERIFIED_SENTENCES others are checked.
+
 SPEED: independent work runs at the same time
   AO-6  Up to AO_MAX_PARALLEL_SPECIALISTS specialists run together (workflow/dispatcher.py).
   AO-7  Literature's direction calls run together, AO_MAX_PARALLEL_MODEL_CALLS at a time.
@@ -37,3 +41,6 @@ AO_RESPONSE_CACHE_ENTRIES = 512  # AO-5: answers remembered per process (0 turns
 AO_MAX_PARALLEL_SPECIALISTS = 2  # AO-6 (SCOPE-05): specialists running at once
 AO_MAX_PARALLEL_MODEL_CALLS = 4  # AO-7: direction calls running at once
 AO_MAX_PLANNER_REQUESTS = 4  # AO-8: extra searches the planner may ask for, once per run
+AO_MAX_CONFLICT_ANALYSES = 3  # AO-9: conflicts the critic explains per round (one call each)
+AO_MAX_CONFLICT_RECORDS = 4  # AO-9: records shown to the model per side of a conflict
+AO_MAX_VERIFIED_SENTENCES = 8  # AO-10: summary sentences the verifier checks with a model

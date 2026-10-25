@@ -1,0 +1,9 @@
+{
+  "skill_id": "claims.verify",
+  "version": "1.0.0",
+  "owner": "verifier",
+  "approved": true,
+  "instructions": "Check one sentence of the summary against the listed claims. A sentence is supported only if the claims state it. Anything extra, stronger or causal is unsupported.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "The sentence cannot be compared with the claims."
+}

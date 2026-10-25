@@ -1,0 +1,9 @@
+{
+  "skill_id": "conflict.analyse",
+  "version": "1.0.0",
+  "owner": "critic",
+  "approved": true,
+  "instructions": "Read the supporting and opposing studies for one gene. Say whether they truly conflict or could differ in population, tissue, assay or design, using only what the text shows. If more evidence would settle it, name one extra search (an alternative name or a qualifier). Never say a gene causes a disease and never advise treatment.",
+  "interpretation_limits": "Research use only; no individual treatment advice.",
+  "abstain_when": "The text gives no basis to compare the studies."
+}

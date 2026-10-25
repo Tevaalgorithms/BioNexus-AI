@@ -68,21 +68,34 @@ export function EmptyIllustration({ label = "Nothing here yet" }: { label?: stri
 /** The team diagram used in "How it works": who does what, left to right. */
 export function TeamDiagram() {
   const specialists = [["Genetics", 52], ["Pathways", 130], ["Literature", 208], ["Clinical", 286]] as const;
+  const head = (t: string, x: number) => (
+    <text key={t} x={x} y="16" textAnchor="middle" fontSize="12" fontWeight="700" letterSpacing=".05em" fill="var(--muted)">{t.toUpperCase()}</text>
+  );
+  const box = (x: number, y: number, title: string, a: string, b: string, tone: "info" | "warn" | "ok" | "brand") => {
+    const fill = tone === "brand" ? "var(--brand-soft)" : `var(--${tone}-bg)`;
+    const edge = tone === "brand" ? "var(--brand)" : `var(--${tone})`;
+    return (
+      <g>
+        <rect x={x} y={y} width="150" height="76" rx="8" fill={fill} stroke={edge} />
+        <text x={x + 75} y={y + 28} textAnchor="middle" fontSize="15" fontWeight="700" fill={edge}>{title}</text>
+        <text x={x + 75} y={y + 47} textAnchor="middle" fontSize="11" fill="var(--text)">{a}</text>
+        <text x={x + 75} y={y + 62} textAnchor="middle" fontSize="11" fill="var(--text)">{b}</text>
+      </g>
+    );
+  };
   return (
-    <svg viewBox="0 0 760 336" role="img" style={{ width: "100%", maxWidth: 860, height: "auto", display: "block", margin: "0 auto" }}
-      aria-label="Four steps. One: the supervisor plans and starts the genetics, literature and clinical specialists. Two: they gather evidence; genetics can ask pathways for context, but only for genes with genetic support. Three: the critic checks all the evidence and asks the literature agent for missing passages and a second look at conflicting directions, then the synthesizer writes cited findings. Four: a scientist reviews and approves.">
+    <svg viewBox="0 0 900 340" role="img" style={{ width: "100%", maxWidth: 900, height: "auto", display: "block", margin: "0 auto" }}
+      aria-label="Five steps. One: the supervisor plans and starts the genetics, literature and clinical specialists. Two: they gather evidence; genetics can ask pathways for context, but only for genes with genetic support. Three: the planner reviews coverage and the critic reviews conflicts; either can ask a specialist to search again, and the critic can ask literature for a passage or a second look. Four: the synthesizer writes cited findings and the verifier checks every claim and summary sentence. Five: a scientist reviews and approves.">
       <defs>
         <marker id="td-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--muted)" /></marker>
         <marker id="td-arrow-b" markerWidth="7" markerHeight="7" refX="6" refY="3.500" orient="auto-start-reverse"><path d="M0 0L7 3.500L0 7z" fill="var(--brand-2)" /></marker>
       </defs>
 
-      {[["1  Plan", 70], ["2  Gather evidence", 265], ["3  Challenge & write", 475], ["4  Approve", 682]].map(([t, x]) => (
-        <text key={t as string} x={x as number} y="16" textAnchor="middle" fontSize="12" fontWeight="700" letterSpacing=".05em" fill="var(--muted)">{(t as string).toUpperCase()}</text>
-      ))}
+      {head("1  Plan", 70)}{head("2  Gather evidence", 245)}{head("3  Review", 475)}{head("4  Write & verify", 675)}{head("5  Approve", 835)}
 
       {/* supervisor -> the three planned specialists (pathways is asked by genetics, not planned) */}
       <g fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinejoin="round">
-        {specialists.filter(([n]) => n !== "Pathways").map(([n, cy]) => <path key={n} d={`M130 169 H160 V${cy} H186`} markerEnd="url(#td-arrow)" />)}
+        {specialists.filter(([n]) => n !== "Pathways").map(([n, cy]) => <path key={n} d={`M130 169 H150 V${cy} H168`} markerEnd="url(#td-arrow)" />)}
       </g>
       <rect x="10" y="137" width="120" height="64" rx="8" fill="var(--brand)" />
       <text x="70" y="165" textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--on-brand)">Supervisor</text>
@@ -91,39 +104,44 @@ export function TeamDiagram() {
       {/* specialists */}
       {specialists.map(([n, cy]) => (
         <g key={n}>
-          <rect x="190" y={cy - 20} width="150" height="40" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" strokeOpacity=".45" strokeDasharray={n === "Pathways" ? "4 3" : undefined} />
-          <text x="265" y={cy + 5} textAnchor="middle" fontSize="14" fontWeight="650" fill="var(--brand)">{n}</text>
+          <rect x="170" y={cy - 20} width="150" height="40" rx="6" fill="var(--brand-soft)" stroke="var(--brand)" strokeOpacity=".45" strokeDasharray={n === "Pathways" ? "4 3" : undefined} />
+          <text x="245" y={cy + 5} textAnchor="middle" fontSize="14" fontWeight="650" fill="var(--brand)">{n}</text>
         </g>
       ))}
       {/* genetics asks pathways */}
-      <path d="M228 73 V107" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" markerEnd="url(#td-arrow-b)" />
-      <text x="240" y="88" fontSize="11" fontWeight="600" fill="var(--brand-2)">asks for context</text>
-      <text x="240" y="101" fontSize="10" fill="var(--muted)">supported genes only</text>
+      <path d="M208 73 V107" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" markerEnd="url(#td-arrow-b)" />
+      <text x="220" y="88" fontSize="11" fontWeight="600" fill="var(--brand-2)">asks for context</text>
+      <text x="220" y="101" fontSize="10" fill="var(--muted)">supported genes only</text>
 
-      {/* every specialist hands its evidence to the critic */}
-      <path d="M340 52 H366 M340 130 H366 M340 208 H366 M340 286 H366 M366 52 V286" stroke="var(--muted)" strokeWidth="2" fill="none" />
-      <path d="M366 118 H398" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
-      {/* the critic talks back to one agent only: literature (missing passage, second look) */}
-      <path d="M400 146 H382 V218 H342" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" strokeLinejoin="round" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
-      <text x="388" y="190" fontSize="11" fontWeight="600" fill="var(--brand-2)">ask · answer</text>
+      {/* every specialist hands its evidence on */}
+      <path d="M320 52 H350 M320 130 H350 M320 208 H350 M320 286 H350 M350 52 V286" stroke="var(--muted)" strokeWidth="2" fill="none" />
+      <path d="M350 88 H398" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
+      <path d="M350 198 H398" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
 
-      {/* critic */}
-      <rect x="400" y="80" width="150" height="76" rx="8" fill="var(--warn-bg)" stroke="var(--warn)" />
-      <text x="475" y="108" textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--warn)">Critic</text>
-      <text x="475" y="127" textAnchor="middle" fontSize="11" fill="var(--text)">flags gaps and conflicts,</text>
-      <text x="475" y="142" textAnchor="middle" fontSize="11" fill="var(--text)">asks for a second look</text>
+      {/* planner and critic may ask a specialist to search again (request and answer) */}
+      <path d="M398 114 H352" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
+      <path d="M398 250 H352" stroke="var(--brand-2)" strokeWidth="2.500" fill="none" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
 
-      {/* critic -> synthesizer -> scientist */}
-      <path d="M475 156 V212" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
-      <rect x="400" y="214" width="150" height="76" rx="8" fill="var(--ok-bg)" stroke="var(--ok)" />
-      <text x="475" y="242" textAnchor="middle" fontSize="15" fontWeight="700" fill="var(--ok)">Synthesizer</text>
-      <text x="475" y="261" textAnchor="middle" fontSize="11" fill="var(--text)">writes findings citing</text>
-      <text x="475" y="276" textAnchor="middle" fontSize="11" fill="var(--text)">only accepted evidence</text>
+      {box(400, 58, "Planner", "reviews coverage,", "asks for more evidence", "info")}
+      <path d="M475 134 V184" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
+      {box(400, 186, "Critic", "flags and explains conflicts,", "asks for a second look", "warn")}
 
-      <path d="M550 252 H610" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
-      <rect x="612" y="214" width="140" height="76" rx="8" fill="var(--surface)" stroke="var(--ok)" strokeWidth="2.500" />
-      <circle cx="682" cy="240" r="12" fill="var(--ok)" /><path d="M676.500 240l4 4 7-8" stroke="var(--surface)" strokeWidth="2.500" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <text x="682" y="272" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--text)">Scientist approves</text>
+      {/* critic -> synthesizer -> verifier -> scientist */}
+      <path d="M550 224 H575 V96 H598" stroke="var(--muted)" strokeWidth="2" fill="none" strokeLinejoin="round" markerEnd="url(#td-arrow)" />
+      {box(600, 58, "Synthesizer", "writes findings citing", "only accepted evidence", "ok")}
+      <path d="M675 134 V184" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
+      {box(600, 186, "Verifier", "checks every claim and", "summary sentence", "brand")}
+      <path d="M750 224 H773" stroke="var(--muted)" strokeWidth="2" fill="none" markerEnd="url(#td-arrow)" />
+      <rect x="775" y="186" width="120" height="76" rx="8" fill="var(--surface)" stroke="var(--ok)" strokeWidth="2.500" />
+      <circle cx="835" cy="212" r="11" fill="var(--ok)" /><path d="M829.500 212l4 4 7-8" stroke="var(--surface)" strokeWidth="2.500" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <text x="835" y="243" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--text)">Scientist</text>
+      <text x="835" y="257" textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--text)">approves</text>
+
+      {/* legend */}
+      <path d="M10 322 H40" stroke="var(--muted)" strokeWidth="2" markerEnd="url(#td-arrow)" />
+      <text x="48" y="326" fontSize="11" fill="var(--muted)">evidence and results move on</text>
+      <path d="M270 322 H300" stroke="var(--brand-2)" strokeWidth="2.500" markerStart="url(#td-arrow-b)" markerEnd="url(#td-arrow-b)" />
+      <text x="308" y="326" fontSize="11" fill="var(--muted)">one agent asks another and gets an answer</text>
     </svg>
   );
 }

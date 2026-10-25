@@ -53,7 +53,7 @@ export default function AgentMatrix() {
 
   return (
     <>
-      <PageHeader title="Agents & models" subtitle={<>Which AI model the agents that call one use (literature and the synthesizer; the others are plain code). Active release <strong>{r.release_id}</strong> (revision {r.revision}). Changes apply to <em>new</em> runs only; runs in progress stay pinned to the release they started with.</>} />
+      <PageHeader title="Agents & models" subtitle={<>Which AI model each AI-assisted agent uses. The others are plain code and show as not used. Active release <strong>{r.release_id}</strong> (revision {r.revision}). Changes apply to <em>new</em> runs only; runs in progress stay pinned to the release they started with.</>} />
       {message && !dialog.current?.open && <div className={`notice ${message.tone}`} role="status">{message.text}</div>}
       <section className="card" aria-labelledby="cfg-flow-h">
         <h2 id="cfg-flow-h">How these settings are used</h2>
