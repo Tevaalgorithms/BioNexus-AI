@@ -26,7 +26,7 @@ scan), and `terraform validate`.
 
 ## Known limits
 
-See "Limits and honest caveats" in the [README](README.md). In short: not yet run against a real Cognito
+See [`docs/limits.md`](docs/limits.md). In short: not yet run against a real Cognito
 pool or deployed; the API has no rate limiting yet; the web app's Content-Security-Policy allows inline scripts
 (needed for the theme setting and Next.js); sessions are held in server memory.
 

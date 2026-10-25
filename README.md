@@ -4,7 +4,7 @@
 
 BioNexus is an evidence-review assistant for drug-target research. A scientist names a disease and up to five genes. A team of source specialists gathers evidence from public genetics, literature, pathway and clinical-trial sources, and AI reviewers plan further searches, flag and explain conflicts, check the findings and write the draft. The scientist **reviews, excludes what they distrust, and approves one exact report version**. Every claim cites the evidence behind it, every excluded record is listed with a reason, and the models and data versions used are recorded.
 
-**Status: MVP**, live on one AWS Lightsail host. Demo data is a small synthetic Crohn's disease sample; live mode uses six public databases. Research use only, not a clinical tool. What is not done yet is listed under [Limits](#limits-and-honest-caveats).
+**Status: MVP**, live on one AWS Lightsail host. Demo data is a small synthetic Crohn's disease sample; live mode uses six public databases. Research use only: it does not recommend treatment or claim that a gene causes a disease. What is not done yet, and what is not proven, is in [`docs/limits.md`](docs/limits.md).
 
 ## Why this exists
 
@@ -238,26 +238,24 @@ The allowlist is wider than what runs today. In practice the routes used are sup
 
 ## Agent optimizations
 
-How an investigation stays cheap and fast. Every lever is a named constant in one file, [`services/api/bionexus/agents/optimization.py`](services/api/bionexus/agents/optimization.py), so they can be read, tuned and reviewed together. The labels (AO-1 to AO-7) match the code comments and the tests in [`tests/test_agent_optimization.py`](services/api/tests/test_agent_optimization.py).
+How an investigation stays cheap and fast. Every lever is a named constant in [`agents/optimization.py`](services/api/bionexus/agents/optimization.py), so they can be read, tuned and reviewed together. The labels (AO-1 to AO-10) match the code comments and the tests in [`tests/test_agent_optimization.py`](services/api/tests/test_agent_optimization.py).
 
 | # | What we did | Where |
 | --- | --- | --- |
-| **AO-1** | **Only roles that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code. They used to call a model just to write a summary that nothing read, so those calls were removed. The planner, critic, verifier, literature and synthesizer each call one for a defined purpose, within limits. | `specialists/`, `agents/base.py`, `agents/critic.py` |
-| **AO-2** | **Small prompts.** A passage is cut to 300 characters. Only a second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
-| **AO-3** | **A cap on direction reading.** A model reads the direction of at most 10 papers. | `agents/literature.py` |
-| **AO-4** | **A cap on synthesis.** The synthesizer uses at most 40 accepted records. | `agents/synthesizer.py` |
-| **AO-5** | **A response cache.** An identical prompt from the same organisation is answered from memory and costs nothing. | `llm/cache.py`, `llm/gateway.py` |
-| **AO-6** | **Specialists in parallel.** Two specialists run at the same time. | `workflow/dispatcher.py` |
-| **AO-7** | **Direction calls in parallel.** Literature's model calls run four at a time, in order. | `agents/literature.py` |
-| **AO-8** | **The planner reads counts, not evidence.** It sees one line per gene and may ask for at most 4 extra searches, once per run. A request is answered by a search, not a model call. | `agents/planner.py` |
-| **AO-9** | **Each conflict is explained once.** The critic shows the model at most 4 records per side and explains at most 3 conflicts per round. | `agents/critic.py`, `agents/conflict.py` |
-| **AO-10** | **The verifier checks claims with plain code.** A summary sentence that is a claim word for word needs no model call, and at most 8 other sentences are checked. | `agents/verifier.py` |
+| **AO-1** | **Only roles that need judgement call a model.** The supervisor, genetics, pathways and clinical are plain code; their summary calls, which nothing read, were removed. | `specialists/`, `agents/base.py` |
+| **AO-2** | **Small prompts.** Passages are cut to 300 characters. A second look reads up to 1,500, on at most 3 records per round. Replies are capped at 400 tokens. | `agents/optimization.py`, `llm/models.py` |
+| **AO-3** | **A cap on direction reading:** at most 10 papers per run. | `agents/literature.py` |
+| **AO-4** | **A cap on synthesis:** at most 40 accepted records. | `agents/synthesizer.py` |
+| **AO-5** | **A response cache.** An identical prompt from the same organisation is answered from memory at no cost. | `llm/cache.py`, `llm/gateway.py` |
+| **AO-6** | **Two specialists run at the same time.** | `workflow/dispatcher.py` |
+| **AO-7** | **Direction calls run four at a time,** results kept in order. | `agents/literature.py` |
+| **AO-8** | **The planner reads counts, not evidence.** At most 4 extra searches, once per run; a request is answered by a search, not a model call. | `agents/planner.py` |
+| **AO-9** | **Each conflict is explained once:** at most 4 records per side, 3 conflicts per round. | `agents/critic.py`, `agents/conflict.py` |
+| **AO-10** | **The verifier checks claims with plain code.** A sentence that is a claim word for word needs no model call; at most 8 others are checked. | `agents/verifier.py` |
 
-The safety limits sit beside these: a budget is reserved before every model call and enforced per run and per organisation, and the router caps messages and handoff depth. See [`workflow/budget.py`](services/api/bionexus/workflow/budget.py) and [`messaging/router.py`](services/api/bionexus/messaging/router.py).
+Safety limits sit beside these: a budget is reserved before every model call, per run and per organisation, and the router caps messages and handoff depth ([`budget.py`](services/api/bionexus/workflow/budget.py), [`router.py`](services/api/bionexus/messaging/router.py)).
 
 ### The levers
-
-All of them are one block of constants:
 
 ```python
 # services/api/bionexus/agents/optimization.py
@@ -275,27 +273,9 @@ AO_MAX_CONFLICT_RECORDS = 4        # AO-9: records shown to the model per side o
 AO_MAX_VERIFIED_SENTENCES = 8      # AO-10: summary sentences the verifier checks with a model
 ```
 
-### AO-1: a specialist makes no model call
-
-A specialist's output is the evidence itself, so it searches, applies the eligibility gate and returns. There is no summary call.
-
-```python
-# services/api/bionexus/agents/base.py  (SpecialistAgent.assess)
-found = self._search(state, targets)
-eligible, excluded = partition_eligible(found, state.request.evidence_cutoff)
-if not eligible:
-    return AgentResult(excluded=excluded, abstained=True, assessment="No eligible evidence.")
-return AgentResult(
-    evidence=eligible,
-    excluded=excluded,
-    assessment=f"{len(eligible)} eligible records from {', '.join(self.source_names)}.",
-    outgoing=self.follow_ups(eligible, message, state),
-)
-```
-
 ### AO-7: direction calls run together
 
-The direction of each paper is an independent question, so the calls go out together. `pool.map` returns results in the original order, so the evidence list is the same as before.
+Each paper's direction is an independent question, and `pool.map` returns results in the original order, so the evidence list is unchanged.
 
 ```python
 # services/api/bionexus/agents/literature.py
@@ -305,15 +285,12 @@ def _with_stances(self, records: list[EvidenceRecord], state: RunState) -> list[
         return list(pool.map(lambda record: self._with_stance(record, state), records))
 ```
 
-The budget stays safe under concurrency: each call reserves its worst-case cost while holding the run's lock, then calls the model outside it.
-
 ### AO-5: an identical prompt is paid for once
 
-The model gateway checks the cache before it calls a model. A hit is recorded in the run's call ledger as `cached` with zero tokens and zero cost, so the report's list of model calls stays honest.
+The gateway checks the cache before it calls a model. A hit is recorded in the call ledger as `cached`, with zero tokens and zero cost, so the report's list of model calls stays honest.
 
 ```python
 # services/api/bionexus/llm/gateway.py  (ModelGateway.complete)
-binding = self._releases.get(state.release_id).bindings[agent]
 key = self._cache.key(state.tenant_id, binding, prompt)
 cached = self._cache.get(key)
 if cached is not None:
@@ -324,36 +301,11 @@ self._cache.put(key, answer)
 return answer.text
 ```
 
-The key decides when an old answer may be reused:
+The key covers the organisation, the model and fallback, the output cap, the temperature and a hash of the prompt. So one organisation never receives another's answer, a changed model setup never reuses an old one, and the prompt itself is never stored. The cache is a bounded in-memory LRU, emptied on every restart.
 
-```python
-# services/api/bionexus/llm/cache.py
-@staticmethod
-def key(tenant_id: str, binding: AgentBinding, prompt: str) -> str:
-    parts = [tenant_id, binding.model_chain(), binding.max_output_tokens, binding.temperature]
-    material = json.dumps([*parts, prompt], default=str)
-    return hashlib.sha256(material.encode()).hexdigest()
-```
+**Provider-side prompt caching is not claimed.** Our prompts put the fixed text first, which suits a provider's cache, but they are far below the roughly 1,000-token minimum, so no saving is assumed.
 
-- **Organisation:** one organisation never receives another's answer.
-- **Model setup:** changing the model, the fallback, the output cap or the temperature changes the key, so an old answer is never reused for a new setup.
-- **Privacy:** only a hash of the prompt is kept, never the prompt.
-- **Bounded:** the cache holds a fixed number of answers and drops the least recently used. It lives in memory, so a restart (including every deploy) empties it.
-
-### Prompt caching, precisely
-
-Two different things are called "prompt caching", and only one of them is built here:
-
-- **Our response cache (AO-5)** returns a stored answer for a prompt we have already sent. It is built, tested, and visible in the ledger.
-- **A provider's own prompt caching** lets the provider reuse the start of a long prompt it has seen before. OpenAI does this automatically for prompts of about 1,000 tokens or more that begin with the same text. Anthropic needs explicit markers. Our prompts put the fixed text first (the agent's instructions, then the question, then the evidence), which is the order a provider's cache needs, but they are much shorter than the minimum today. So we make no claim about a saving from it.
-
-### Not done yet
-
-- The cache is per process and in memory. It is not shared between the API and the worker, and it is emptied on restart.
-- Public source responses are not cached between runs, so every investigation queries the live databases again.
-- A second look still runs one request after another. Only the first direction reads are parallel.
-- A paper is read in its own call. Reading several papers in one call would use fewer calls but changes the prompt, so it needs an evaluation first.
-- There is no speed benchmark yet. The tests prove the calls overlap and keep their order, not how much faster a real run is.
+**Not done yet:** the cache is per process; public source responses are not cached between runs; second looks run one at a time and each paper is read in its own call (batching changes the prompt and needs an evaluation first); and there is no speed benchmark, only tests that the calls overlap and keep their order.
 
 ## Technology
 
@@ -458,20 +410,6 @@ Use prices you have checked. The key is read by name from your `.env`, never fro
 
 Pushing a tag like `v0.1.0` runs the checks, builds the API and web images, pushes them to ECR and deploys to the Lightsail host through AWS Systems Manager, then checks the public URL. A failed health check rolls back to the previous release. The monthly cost is about US$12 to 16 for AWS, with model charges separate ([`docs/costs.md`](docs/costs.md)). Steps and rollback are in [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md). Every setting, and where it comes from, is in [`docs/configuration.md`](docs/configuration.md).
 
-## Limits and honest caveats
-
-- **Synthetic demo evidence.** The offline sample and the evaluation reference set are made up. They show the mechanics work, not accuracy on real research.
-- **The newest roles are tested for behaviour, not accuracy.** The planner, the critic's explanations and the verifier are tested with scripted models and sources: requests, limits, validation, fallbacks and the report are proven. Whether they improve results on real research has not been measured. `python -m bionexus.evals.ablation` runs the product with each step switched off and on, with a real model, so you can compare.
-- **The multi-agent design is not shown to beat a simpler one.** On the tiny offline set a single-agent baseline matches the team. Answering that needs a scientist-written locked question set and real models.
-- **Live models.** One full run has been done with an OpenAI model. Anthropic models have not been verified live, and production still uses placeholder models until an admin registers a real one.
-- **Direction can be wrong.** Literature direction comes from a model reading an abstract and is labelled unreviewed. Database associations are not proof. Only a scientist's review makes a finding reliable.
-- **Source rights are conservative defaults, not legal advice.** For example only open-access Europe PMC articles are reusable.
-- **Data leaves the machine in live mode.** Do not load confidential material until the provider and retention decisions are made.
-- **Single host, no high availability.** Web sessions are held in memory, so a restart (including every deploy) signs everyone out.
-- **No MFA.** Sign-in is invite-only with a password.
-- **Not built:** remove-member and delete-project, mapping corrections, scheduled source refresh, raw-response capture, a Python lockfile, alert delivery.
-- **No treatment advice.** BioNexus assesses public evidence for research use. It does not diagnose, recommend treatment, accept patient records, or establish that a gene causes a disease. Counts guide judgement and are not probabilities.
-
 ## How this compares with existing products
 
 Several good products help with parts of this problem. BioNexus does not replace them. The descriptions come from each product's public material, checked in October 2026. Vendor figures are the vendors' claims, so confirm before relying on them.
@@ -490,7 +428,7 @@ Several good products help with parts of this problem. BioNexus does not replace
 
 ## Documentation
 
-[`docs/architecture.md`](docs/architecture.md) · [`docs/configuration.md`](docs/configuration.md) · [`docs/costs.md`](docs/costs.md) · [`docs/runbooks/`](docs/runbooks/README.md) (users, deploy, restore, secrets, incidents) · [`services/api/README.md`](services/api/README.md) · [`apps/web/README.md`](apps/web/README.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md)
+[`docs/architecture.md`](docs/architecture.md) · [`docs/configuration.md`](docs/configuration.md) · [`docs/costs.md`](docs/costs.md) · [`docs/limits.md`](docs/limits.md) · [`docs/runbooks/`](docs/runbooks/README.md) (users, deploy, restore, secrets, incidents) · [`services/api/README.md`](services/api/README.md) · [`apps/web/README.md`](apps/web/README.md) · [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md)
 
 ## License
 
